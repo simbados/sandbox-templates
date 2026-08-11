@@ -34,8 +34,8 @@ RUN command -v unzip >/dev/null 2>&1 || \
 RUN set -eu; \
     FNM_VERSION=v1.39.0; \
     case "$(uname -m)" in \
-        x86_64) FNM_ASSET=fnm-linux.zip; FNM_SHA256=0000000000000000000000000000000000000000000000000000000000000000 ;; \
-        aarch64) FNM_ASSET=fnm-arm64.zip; FNM_SHA256=0000000000000000000000000000000000000000000000000000000000000000 ;; \
+        x86_64) FNM_ASSET=fnm-linux.zip; FNM_SHA256=7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224 ;; \
+        aarch64) FNM_ASSET=fnm-arm64.zip; FNM_SHA256=7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224 ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     curl -fsSL -o /tmp/fnm.zip "https://github.com/Schniz/fnm/releases/download/${FNM_VERSION}/${FNM_ASSET}"; \
