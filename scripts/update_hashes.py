@@ -51,12 +51,13 @@ def process_dockerfile(path: Path) -> bool:
         version = version_match.group(1)
 
         assets = re.findall(rf"{name}_ASSET=(\S+?);", content)
-        hashes = re.findall(rf"{name}_SHA256=([0-9a-f]{{64}})", content)
-        if not assets or len(assets) != len(hashes):
-            print(f"::error::{path}: {name}: found {len(assets)} asset(s) but {len(hashes)} hash(es), giving up")
+        old_hashes = re.findall(rf"{name}_SHA256=([0-9a-f]{{64}})", content)
+        if not assets or len(assets) != len(old_hashes):
+            print(f"::error::{path}: {name}: found {len(assets)} asset(s) but {len(old_hashes)} hash(es), giving up")
             raise SystemExit(1)
 
-        for asset, old_hash in zip(assets, hashes):
+        actual_hashes = []
+        for asset, old_hash in zip(assets, old_hashes):
             url = f"https://github.com/{repo}/releases/download/{version}/{asset}"
             print(f"Checking {path}: {name} {asset} @ {version} ...")
             try:
@@ -65,12 +66,22 @@ def process_dockerfile(path: Path) -> bool:
                 print(f"::error::Failed to download {url}: {exc}")
                 raise SystemExit(1)
 
+            actual_hashes.append(actual_hash)
             if actual_hash != old_hash:
                 print(f"::notice::{path}: {asset}: hash changed {old_hash} -> {actual_hash}")
-                content = content.replace(old_hash, actual_hash)
                 changed = True
             else:
                 print(f"{path}: {asset}: OK ({actual_hash})")
+
+        # Rewrite the Nth "{name}_SHA256=..." occurrence with the Nth freshly
+        # computed hash, by position rather than by searching for the old hash
+        # string. A plain content.replace(old_hash, actual_hash) is unsafe here:
+        # if two occurrences ever hold an identical hash (e.g. from a prior bug,
+        # or coincidentally), replacing by string value corrupts every matching
+        # occurrence at once instead of just the one that actually changed.
+        sha_pattern = re.compile(rf"{name}_SHA256=[0-9a-f]{{64}}")
+        actual_iter = iter(actual_hashes)
+        content = sha_pattern.sub(lambda m: f"{name}_SHA256={next(actual_iter)}", content)
 
     if changed:
         path.write_text(content)
