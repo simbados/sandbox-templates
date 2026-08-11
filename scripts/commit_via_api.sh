@@ -37,4 +37,4 @@ new_commit_sha=$(jq -n --arg message "$COMMIT_MESSAGE" --arg tree "$new_tree_sha
   '{message: $message, tree: $tree, parents: [$parent]}' | gh api "repos/$REPO/git/commits" --input - --jq '.sha')
 
 echo "Fast-forwarding $BRANCH to $new_commit_sha ..."
-gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$new_commit_sha" -f force=false
+gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$new_commit_sha" -F force=false
