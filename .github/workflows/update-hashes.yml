@@ -48,16 +48,17 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit and push corrected hashes
+      - name: Commit corrected hashes via GitHub API
+        # Goes through the Git Data API instead of `git commit`/`git push` so
+        # the resulting commit shows up as "Verified" on GitHub (GitHub signs
+        # commits it creates via its own API; a plain CLI commit pushed with
+        # GITHUB_TOKEN does not get a signature, so it shows as unverified).
         if: steps.result.outputs.changed == 'true' && github.event_name == 'pull_request'
         env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -- $(cat hash_update_result.txt)
-          git commit -m "chore: sync pinned release hashes with upstream"
-          git push origin "HEAD:$HEAD_REF"
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: bash scripts/commit_via_api.sh
 
       - name: Fail if hashes drifted outside a PR
         if: steps.result.outputs.changed == 'true' && github.event_name != 'pull_request'
