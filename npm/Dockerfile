@@ -32,7 +32,7 @@ RUN command -v unzip >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip && sudo rm -rf /var/lib/apt/lists/*)
 
 RUN set -eu; \
-    FNM_VERSION=v1.38.0; \
+    FNM_VERSION=v1.37.0; \
     case "$(uname -m)" in \
         x86_64) FNM_ASSET=fnm-linux.zip; FNM_SHA256=0000000000000000000000000000000000000000000000000000000000000000 ;; \
         aarch64) FNM_ASSET=fnm-arm64.zip; FNM_SHA256=0000000000000000000000000000000000000000000000000000000000000000 ;; \
