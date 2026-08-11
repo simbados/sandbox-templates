@@ -2,6 +2,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "7 days",
+  "packageRules": [
+    {
+      // TEMPORARY: throttling fnm updates while we're actively testing the
+      // hash-update pipeline against it. Remove this rule once done.
+      "matchDepNames": ["Schniz/fnm"],
+      "prHourlyLimit": 10
+    }
+  ],
   "customManagers": [
     {
       "customType": "regex",
