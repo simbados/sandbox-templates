@@ -1,0 +1,32 @@
+// Archived customManagers entries from renovate.json - superseded by the direct
+// Adoptium/Temurin GitHub-release install. Kept here for reference; not read by Renovate
+// (only the top-level renovate.json in the repo root is).
+[
+  {
+    // sdkman.sh isn't a hand-maintained pin like the Dockerfile ones above - it's
+    // the real upstream installer (patched to add sha256 checks; see
+    // scripts/patch_sdkman_installer.py). This entry only exists so Renovate
+    // notices a new sdkman-cli release and opens a PR; update-hashes.yml then
+    // fully re-fetches and re-patches the file from live upstream, discarding
+    // whatever Renovate wrote here beyond the version bump itself.
+    "customType": "regex",
+    "managerFilePatterns": [
+      "/(^|/)sdkman\\.sh$/"
+    ],
+    "matchStrings": ["export SDKMAN_VERSION=\"(?<currentValue>[0-9.]+)\""],
+    "depNameTemplate": "sdkman/sdkman-cli",
+    "datasourceTemplate": "github-releases",
+    "versioningTemplate": "semver-coerced"
+  },
+  {
+    "customType": "regex",
+    "managerFilePatterns": [
+      "/(^|/)sdkman\\.sh$/"
+    ],
+    "matchStrings": ["export SDKMAN_NATIVE_VERSION=\"(?<currentValue>[0-9.]+)\""],
+    "depNameTemplate": "sdkman/sdkman-cli-native",
+    "datasourceTemplate": "github-releases",
+    "versioningTemplate": "semver-coerced",
+    "extractVersionTemplate": "^v(?<version>.*)$"
+  }
+]

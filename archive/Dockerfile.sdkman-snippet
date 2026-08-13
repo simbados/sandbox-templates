@@ -1,0 +1,20 @@
+# Archived from npm/Dockerfile - superseded by the direct Adoptium/Temurin GitHub-release
+# install. Kept here for reference; not built or referenced by anything active.
+#
+# The unzip/zip dependency check line above this block was also widened to check for `zip`
+# (not just `unzip`) while this was active, since sdkman.sh's own sanity checks require it:
+#
+#   RUN (command -v unzip >/dev/null 2>&1 && command -v zip >/dev/null 2>&1) || \
+#       (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip zip && sudo rm -rf /var/lib/apt/lists/*)
+
+# get.sdkman.io is fetched via `curl | bash`, and even then only integrity-checks the archives
+# it downloads with `unzip -t` (catches transit corruption, not tampering) - no published hash
+# to verify against. Rather than reimplement the installer's directory scaffolding ourselves
+# (etc/config, var/platform, etc. - risking silent drift whenever upstream changes something we
+# didn't reproduce), sdkman.sh here IS the real installer, fetched from get.sdkman.io and patched
+# by scripts/patch_sdkman_installer.py to add a sha256 check on the two archives it downloads
+# (verified against the GitHub releases those downloads actually redirect to - confirmed via a
+# live request to api.sdkman.io). Everything else about the install stays byte-identical to
+# upstream. See that script's docstring for how re-patching after an upstream update works.
+COPY scripts/sdkman.sh /tmp/sdkman.sh
+RUN bash /tmp/sdkman.sh && rm /tmp/sdkman.sh

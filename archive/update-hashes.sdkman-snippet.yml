@@ -1,0 +1,25 @@
+# Archived from .github/workflows/update-hashes.yml - superseded by the direct
+# Adoptium/Temurin GitHub-release install (which needs none of this; it fits the
+# existing generic scripts/update_hashes.py TOOLS-dict mechanism like fnm/fzf/zoxide).
+# Kept here for reference; not an active workflow file.
+#
+# The `on.pull_request.paths` trigger also had "**/sdkman.sh" added alongside
+# "**/Dockerfile" while this was active.
+#
+# The step itself, inserted between "Fetch real hashes from GitHub releases and
+# compare" and "Read result":
+
+      - name: Re-fetch and re-patch SDKMAN installer script(s) from upstream
+        # Unlike update_hashes.py above (which patches a specific value in place),
+        # this fully re-fetches https://get.sdkman.io and re-runs the patcher from
+        # scratch for every checked-in sdkman.sh, so any Renovate-triggered version
+        # bump always lands on top of the real current upstream script rather than
+        # an edited-in-place stale copy. patch_sdkman_installer.py itself fails the
+        # job if upstream restructured either download block it patches.
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' f; do
+            echo "Re-patching $f ..."
+            python3 scripts/patch_sdkman_installer.py --output-file "$f"
+            git diff --quiet -- "$f" || echo "$f" >> hash_update_result.txt
+          done < <(find . -name 'sdkman.sh' -not -path './.git/*' -print0)

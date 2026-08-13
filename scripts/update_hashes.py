@@ -21,6 +21,7 @@ TOOLS = {
     "FNM": "Schniz/fnm",
     "FZF": "junegunn/fzf",
     "ZOXIDE": "ajeetdsouza/zoxide",
+    "TEMURIN": "adoptium/temurin25-binaries",
 }
 
 

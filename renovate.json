@@ -40,6 +40,19 @@
       "depNameTemplate": "ajeetdsouza/zoxide",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver-coerced"
+    },
+    {
+      // temurin25-binaries is version-25-specific (Adoptium publishes a separate repo per
+      // major), so this only ever tracks patch/build releases within Java 25 LTS - moving to
+      // a later LTS means manually repointing depNameTemplate at the new major's repo.
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
+      "matchStrings": ["TEMURIN_VERSION=(?<currentValue>jdk-[0-9.]+\\+[0-9]+);"],
+      "depNameTemplate": "adoptium/temurin25-binaries",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
     }
   ]
 }
