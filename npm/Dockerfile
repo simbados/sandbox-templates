@@ -1,11 +1,10 @@
-FROM docker/sandbox-templates:claude-code-docker
+FROM docker/sandbox-templates:claude-code-docker@sha256:ae8a46a105752b6d8937d4000f2058e8379af51aebffc2881618ceef7914f639
 USER agent
 
-RUN mkdir -p ~/Library/Preferences/pnpm ~/.config/uv && \
-    BEFORE_DATE=$(date -d "-3 days" +%Y-%m-%d) && \
-    cat <<EOF >> ~/.npmrc
+RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
+    cat <<'EOF' >> ~/.npmrc
 # --- managed by config/setup.sh ---
-before=$BEFORE_DATE
+min-release-age=7
 ignore-scripts=true
 update-notifier=false
 allow-directory=root
@@ -14,7 +13,7 @@ allow-remote=root
 # --- end config/setup.sh ---
 EOF
 
-RUN cat <<'EOF' > ~/Library/Preferences/pnpm/config.yaml
+RUN cat <<'EOF' > ~/.config/pnpm/config.yaml
 minimumReleaseAge: 10080
 
 minimumReleaseAgeStrict: true
@@ -30,6 +29,22 @@ EOF
 
 RUN command -v unzip >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip && sudo rm -rf /var/lib/apt/lists/*)
+
+RUN command -v fish >/dev/null 2>&1 || \
+    (sudo apt-get update && sudo apt-get install -y --no-install-recommends fish && sudo rm -rf /var/lib/apt/lists/*)
+
+RUN command -v vim >/dev/null 2>&1 || \
+    (sudo apt-get update && sudo apt-get install -y --no-install-recommends vim && sudo rm -rf /var/lib/apt/lists/*)
+
+# The base image ships Debian's own nodejs/npm (apt packages, pinned to whatever
+# Ubuntu/Debian currently carries) alongside a long tail of node-* library
+# packages that exist only to satisfy it. Left in place, /usr/bin/node sits on
+# PATH ahead of nothing in particular and quietly wins over fnm's managed
+# install in any shell that hasn't run `fnm env` (e.g. non-interactive
+# invocations that never source ~/.bashrc). Purge it so fnm's install below is
+# unambiguously the only `node`/`npm` on the system.
+RUN sudo apt-get purge -y --autoremove nodejs npm libnode-dev libnode127 handlebars && \
+    sudo rm -rf /var/lib/apt/lists/*
 
 RUN set -eu; \
     FNM_VERSION=v1.39.0; \
@@ -47,6 +62,20 @@ RUN set -eu; \
 ENV PATH="/home/agent/.local/share/fnm:$PATH"
 
 RUN echo 'eval "$(fnm env --use-on-cd --shell bash)"' >> ~/.bashrc
+
+RUN mkdir -p ~/.config/fish/conf.d && cat <<'EOF' > ~/.config/fish/conf.d/fnm.fish
+status is-interactive; and fnm env --use-on-cd --shell fish | source
+EOF
+
+# /etc/sandbox-persistent.sh is sourced before every non-interactive shell the
+# Bash tool spawns (via BASH_ENV/CLAUDE_ENV_FILE) — those never source
+# ~/.bashrc or fish's conf.d, so without this `node`/`npm` would be missing
+# there even though fnm is fully installed. No --use-on-cd here deliberately:
+# this line reruns before every single command, and --use-on-cd would make
+# fnm try to auto-switch to whatever version a directory's package.json/
+# .nvmrc pins, hard-failing every command in a directory whose pin isn't
+# installed. Just resolve the configured default (the LTS installed below).
+RUN echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh
 
 RUN eval "$(fnm env --shell bash)" && \
     fnm install --lts && \
@@ -92,7 +121,7 @@ RUN printf '%s\n%s\n' 'eval "$(fzf --bash)"' 'eval "$(zoxide init bash)"' >> ~/.
 RUN command -v gpg >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends gnupg && sudo rm -rf /var/lib/apt/lists/*)
 
-COPY keys/adoptium-temurin.asc /tmp/adoptium-temurin.asc
+COPY --chown=agent:agent keys/adoptium-temurin.asc /tmp/adoptium-temurin.asc
 
 RUN set -eu; \
     TEMURIN_VERSION=jdk-25.0.4+7; \
@@ -115,3 +144,5 @@ RUN set -eu; \
 ENV JAVA_HOME="/home/agent/.local/share/temurin"
 ENV PATH="/home/agent/.local/share/temurin/bin:$PATH"
 
+RUN eval "$(fnm env --shell bash)" && \
+    npm install -g pnpm
