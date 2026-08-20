@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Re-verify the pinned GitHub release sha256 hashes in every Dockerfile in this
-repo against the real release assets, and rewrite any that no longer match (e.g.
-after Renovate bumps a *_VERSION pin but leaves the old hash in place).
+"""Re-verify the pinned GitHub release sha256 hashes in every tools/*.dockerfile
+fragment against the real release assets, and rewrite any that no longer match
+(e.g. after Renovate bumps a *_VERSION pin but leaves the old hash in place).
+
+Version/hash pins live in tools/*.dockerfile fragments, not in a template's
+generated Dockerfile (see scripts/generate_dockerfile.py) - those are build
+artifacts, so this script never touches them directly.
 """
 import hashlib
 import re
@@ -27,7 +31,7 @@ TOOLS = {
 
 def find_dockerfiles() -> list[Path]:
     return sorted(
-        p for p in REPO_ROOT.rglob("Dockerfile") if ".git" not in p.parts
+        p for p in (REPO_ROOT / "tools").glob("*.dockerfile") if ".git" not in p.parts
     )
 
 

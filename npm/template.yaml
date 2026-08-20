@@ -1,0 +1,8 @@
+base_image: docker/sandbox-templates:claude-code-docker@sha256:ae8a46a105752b6d8937d4000f2058e8379af51aebffc2881618ceef7914f639
+prelude: security-presets.dockerfile
+tools:
+  - apt-packages
+  - fnm
+  - fzf-zoxide
+  - temurin
+  - pnpm

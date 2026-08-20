@@ -1,3 +1,9 @@
+# GENERATED FILE - do not edit directly.
+#
+# Edit the fragments in tools/ (and this template's template.yaml / prelude
+# fragment), then regenerate with:
+#   python3 scripts/generate_dockerfile.py npm
+
 FROM docker/sandbox-templates:claude-code-docker@sha256:ae8a46a105752b6d8937d4000f2058e8379af51aebffc2881618ceef7914f639
 USER agent
 
@@ -27,14 +33,10 @@ RUN cat <<'EOF' > ~/.config/uv/uv.toml
 exclude-newer = "7 days"
 EOF
 
-RUN command -v unzip >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip && sudo rm -rf /var/lib/apt/lists/*)
-
-RUN command -v fish >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends fish && sudo rm -rf /var/lib/apt/lists/*)
-
-RUN command -v vim >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends vim && sudo rm -rf /var/lib/apt/lists/*)
+RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
+    command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
+    (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
+     sudo rm -rf /var/lib/apt/lists/*)
 
 # The base image ships Debian's own nodejs/npm (apt packages, pinned to whatever
 # Ubuntu/Debian currently carries) alongside a long tail of node-* library
@@ -117,10 +119,7 @@ RUN printf '%s\n%s\n' 'eval "$(fzf --bash)"' 'eval "$(zoxide init bash)"' >> ~/.
 # SDKMAN's own broker redirects to for this candidate, just fetched with real integrity verification
 # and without SDKMAN's per-candidate "post-installation hook" mechanism (a remote script fetched and
 # sourced on every install; see prior investigation). Installed ahead of the base image's existing
-# OpenJDK on PATH so `java` resolves to this build.
-RUN command -v gpg >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends gnupg && sudo rm -rf /var/lib/apt/lists/*)
-
+# OpenJDK on PATH so `java` resolves to this build. Requires gnupg (from apt-packages.dockerfile).
 COPY --chown=agent:agent keys/adoptium-temurin.asc /tmp/adoptium-temurin.asc
 
 RUN set -eu; \

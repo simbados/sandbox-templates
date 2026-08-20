@@ -1,0 +1,28 @@
+RUN set -eu; \
+    FZF_VERSION=v0.74.2; \
+    ZOXIDE_VERSION=v0.10.0; \
+    case "$(uname -m)" in \
+        x86_64) \
+            FZF_ASSET=fzf-0.74.2-linux_amd64.tar.gz; \
+            FZF_SHA256=b3648f48675612b69ee35371cf6dc99ca96d767e89b912d079080916ac8ba8bd; \
+            ZOXIDE_ASSET=zoxide-0.10.0-x86_64-unknown-linux-musl.tar.gz; \
+            ZOXIDE_SHA256=2d93385b99f3e82cf2701609a1bffcad863fbeb75aa3fe7eb6be4d29be68b1ae ;; \
+        aarch64) \
+            FZF_ASSET=fzf-0.74.2-linux_arm64.tar.gz; \
+            FZF_SHA256=1373e3f5ed3c468179d4529942ddd96c234bcad1bcacaf238916e26a5234b5b2; \
+            ZOXIDE_ASSET=zoxide-0.10.0-aarch64-unknown-linux-musl.tar.gz; \
+            ZOXIDE_SHA256=f1f16c5d6298d63dee467eedea1cdcd8490e43e493bea43acd416dc9033ef641 ;; \
+        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p ~/.local/bin; \
+    curl -fsSL -o /tmp/fzf.tar.gz "https://github.com/junegunn/fzf/releases/download/${FZF_VERSION}/${FZF_ASSET}"; \
+    echo "${FZF_SHA256}  /tmp/fzf.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/fzf.tar.gz -C ~/.local/bin fzf; \
+    rm /tmp/fzf.tar.gz; \
+    curl -fsSL -o /tmp/zoxide.tar.gz "https://github.com/ajeetdsouza/zoxide/releases/download/${ZOXIDE_VERSION}/${ZOXIDE_ASSET}"; \
+    echo "${ZOXIDE_SHA256}  /tmp/zoxide.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/zoxide.tar.gz -C ~/.local/bin zoxide; \
+    rm /tmp/zoxide.tar.gz; \
+    chmod +x ~/.local/bin/fzf ~/.local/bin/zoxide
+
+RUN printf '%s\n%s\n' 'eval "$(fzf --bash)"' 'eval "$(zoxide init bash)"' >> ~/.bashrc
