@@ -1,11 +1,15 @@
-# The base image ships Debian's own nodejs/npm (apt packages, pinned to whatever
-# Ubuntu/Debian currently carries) alongside a long tail of node-* library
-# packages that exist only to satisfy it. Left in place, /usr/bin/node sits on
-# PATH ahead of nothing in particular and quietly wins over fnm's managed
-# install in any shell that hasn't run `fnm env` (e.g. non-interactive
-# invocations that never source ~/.bashrc). Purge it so fnm's install below is
-# unambiguously the only `node`/`npm` on the system.
-RUN sudo apt-get purge -y --autoremove nodejs npm libnode-dev libnode127 handlebars && \
+# Some base images (e.g. docker/sandbox-templates:claude-code-docker) ship
+# nodejs/npm pre-installed via apt (pinned to whatever Ubuntu currently
+# carries) alongside a long tail of node-* library packages that exist only
+# to satisfy it. Left in place, /usr/bin/node sits on PATH ahead of nothing
+# in particular and quietly wins over fnm's managed install in any shell
+# that hasn't run `fnm env` (e.g. non-interactive invocations that never
+# source ~/.bashrc). Purge it so fnm's install below is unambiguously the
+# only `node`/`npm` on the system. Other bases (e.g. plain ubuntu) never had
+# these packages installed, so `apt-get purge` on them would error "Unable
+# to locate package" - only purge what dpkg actually shows as installed.
+RUN installed="$(dpkg-query -W -f='${Package}\n' nodejs npm libnode-dev libnode127 handlebars 2>/dev/null)" && \
+    if [ -n "$installed" ]; then sudo apt-get purge -y --autoremove $installed; fi; \
     sudo rm -rf /var/lib/apt/lists/*
 
 RUN set -eu; \
@@ -37,7 +41,12 @@ EOF
 # fnm try to auto-switch to whatever version a directory's package.json/
 # .nvmrc pins, hard-failing every command in a directory whose pin isn't
 # installed. Just resolve the configured default (the LTS installed below).
-RUN echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh
+# Only some base images (e.g. docker/sandbox-templates:claude-code-docker)
+# bake this file in at a path agent can write; others don't ship it at all,
+# so skip rather than fail the build when it's absent.
+RUN if [ -f /etc/sandbox-persistent.sh ]; then \
+        echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh; \
+    fi
 
 RUN eval "$(fnm env --shell bash)" && \
     fnm install --lts && \

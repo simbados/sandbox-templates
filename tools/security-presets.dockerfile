@@ -1,3 +1,9 @@
+# Idempotent if the current template already switched to agent earlier in
+# its tools list (e.g. via generic-tools): re-selecting the same user is a
+# no-op. Kept here because templates whose base image ships agent already
+# (no generic-tools needed) still need this before ~ is touched below.
+USER agent
+
 RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
     cat <<'EOF' >> ~/.npmrc
 # --- managed by config/setup.sh ---

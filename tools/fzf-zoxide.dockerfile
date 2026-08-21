@@ -25,4 +25,15 @@ RUN set -eu; \
     rm /tmp/zoxide.tar.gz; \
     chmod +x ~/.local/bin/fzf ~/.local/bin/zoxide
 
+# ~/.local/bin only reaches PATH by default through bash's stock ~/.profile
+# (login shells) - fish has no equivalent, and this is a Docker ENV (not a
+# shell dotfile) specifically so it applies to every shell uniformly,
+# including fish and uv.dockerfile's later install into the same directory.
+ENV PATH="/home/agent/.local/bin:$PATH"
+
 RUN printf '%s\n%s\n' 'eval "$(fzf --bash)"' 'eval "$(zoxide init bash)"' >> ~/.bashrc
+
+RUN mkdir -p ~/.config/fish/conf.d && cat <<'EOF' > ~/.config/fish/conf.d/fzf-zoxide.fish
+status is-interactive; and fzf --fish | source
+status is-interactive; and zoxide init fish | source
+EOF

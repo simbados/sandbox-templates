@@ -2,9 +2,14 @@
 #
 # Edit the fragments in tools/ (and this template's template.yaml / prelude
 # fragment), then regenerate with:
-#   python3 scripts/generate_dockerfile.py npm
+#   python3 scripts/generate_dockerfile.py claude
 
 FROM docker/sandbox-templates:claude-code-docker@sha256:ae8a46a105752b6d8937d4000f2058e8379af51aebffc2881618ceef7914f639
+
+# Idempotent if the current template already switched to agent earlier in
+# its tools list (e.g. via generic-tools): re-selecting the same user is a
+# no-op. Kept here because templates whose base image ships agent already
+# (no generic-tools needed) still need this before ~ is touched below.
 USER agent
 
 RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
@@ -38,14 +43,18 @@ RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
      sudo rm -rf /var/lib/apt/lists/*)
 
-# The base image ships Debian's own nodejs/npm (apt packages, pinned to whatever
-# Ubuntu/Debian currently carries) alongside a long tail of node-* library
-# packages that exist only to satisfy it. Left in place, /usr/bin/node sits on
-# PATH ahead of nothing in particular and quietly wins over fnm's managed
-# install in any shell that hasn't run `fnm env` (e.g. non-interactive
-# invocations that never source ~/.bashrc). Purge it so fnm's install below is
-# unambiguously the only `node`/`npm` on the system.
-RUN sudo apt-get purge -y --autoremove nodejs npm libnode-dev libnode127 handlebars && \
+# Some base images (e.g. docker/sandbox-templates:claude-code-docker) ship
+# nodejs/npm pre-installed via apt (pinned to whatever Ubuntu currently
+# carries) alongside a long tail of node-* library packages that exist only
+# to satisfy it. Left in place, /usr/bin/node sits on PATH ahead of nothing
+# in particular and quietly wins over fnm's managed install in any shell
+# that hasn't run `fnm env` (e.g. non-interactive invocations that never
+# source ~/.bashrc). Purge it so fnm's install below is unambiguously the
+# only `node`/`npm` on the system. Other bases (e.g. plain ubuntu) never had
+# these packages installed, so `apt-get purge` on them would error "Unable
+# to locate package" - only purge what dpkg actually shows as installed.
+RUN installed="$(dpkg-query -W -f='${Package}\n' nodejs npm libnode-dev libnode127 handlebars 2>/dev/null)" && \
+    if [ -n "$installed" ]; then sudo apt-get purge -y --autoremove $installed; fi; \
     sudo rm -rf /var/lib/apt/lists/*
 
 RUN set -eu; \
@@ -77,7 +86,12 @@ EOF
 # fnm try to auto-switch to whatever version a directory's package.json/
 # .nvmrc pins, hard-failing every command in a directory whose pin isn't
 # installed. Just resolve the configured default (the LTS installed below).
-RUN echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh
+# Only some base images (e.g. docker/sandbox-templates:claude-code-docker)
+# bake this file in at a path agent can write; others don't ship it at all,
+# so skip rather than fail the build when it's absent.
+RUN if [ -f /etc/sandbox-persistent.sh ]; then \
+        echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh; \
+    fi
 
 RUN eval "$(fnm env --shell bash)" && \
     fnm install --lts && \
@@ -110,7 +124,18 @@ RUN set -eu; \
     rm /tmp/zoxide.tar.gz; \
     chmod +x ~/.local/bin/fzf ~/.local/bin/zoxide
 
+# ~/.local/bin only reaches PATH by default through bash's stock ~/.profile
+# (login shells) - fish has no equivalent, and this is a Docker ENV (not a
+# shell dotfile) specifically so it applies to every shell uniformly,
+# including fish and uv.dockerfile's later install into the same directory.
+ENV PATH="/home/agent/.local/bin:$PATH"
+
 RUN printf '%s\n%s\n' 'eval "$(fzf --bash)"' 'eval "$(zoxide init bash)"' >> ~/.bashrc
+
+RUN mkdir -p ~/.config/fish/conf.d && cat <<'EOF' > ~/.config/fish/conf.d/fzf-zoxide.fish
+status is-interactive; and fzf --fish | source
+status is-interactive; and zoxide init fish | source
+EOF
 
 # Eclipse Temurin 25 (latest LTS), pulled directly from Adoptium's own GitHub releases,
 # sha256-verified, and GPG-verified against Adoptium's vendored signing key (keys/adoptium-temurin.asc,
@@ -145,16 +170,3 @@ ENV PATH="/home/agent/.local/share/temurin/bin:$PATH"
 
 RUN eval "$(fnm env --shell bash)" && \
     npm install -g pnpm
-
-RUN set -eu; \
-    UV_VERSION=0.12.5; \
-    case "$(uname -m)" in \
-        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2 ;; \
-        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=9bf43b4d1a07665bf64d4c4e710930b382321a785e0eb10aac07f46471f86a31 ;; \
-        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL -o /tmp/uv.tar.gz "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ASSET}"; \
-    echo "${UV_SHA256}  /tmp/uv.tar.gz" | sha256sum -c -; \
-    mkdir -p ~/.local/bin; \
-    tar -xzf /tmp/uv.tar.gz --strip-components=1 -C ~/.local/bin "${UV_ASSET%.tar.gz}/uv" "${UV_ASSET%.tar.gz}/uvx"; \
-    rm /tmp/uv.tar.gz
