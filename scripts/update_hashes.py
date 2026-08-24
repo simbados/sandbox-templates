@@ -3,6 +3,13 @@
 fragment against the real release assets, and rewrite any that no longer match
 (e.g. after Renovate bumps a *_VERSION pin but leaves the old hash in place).
 
+Some tools (fzf, zoxide, temurin) also embed the version number a second time
+inside their *_ASSET filename (e.g. FZF_ASSET=fzf-0.74.2-linux_amd64.tar.gz).
+Renovate's customManager only bumps *_VERSION, so after a bump that embedded
+number is stale and the release download 404s. Before verifying hashes, this
+script re-derives that numeral from *_VERSION and rewrites it in place too -
+see the TOOLS dict and fix_asset_versions() below.
+
 Version/hash pins live in tools/*.dockerfile fragments, not in a template's
 generated Dockerfile (see scripts/generate_dockerfile.py) - those are build
 artifacts, so this script never touches them directly.
@@ -21,13 +28,65 @@ RESULT_FILE = Path("hash_update_result.txt")
 # hardcoded here rather than read from the Dockerfile: the repo name is what
 # this script trusts to build download URLs from, so it must come from
 # reviewed script code, not from content a Dockerfile PR could change.
+#
+# "asset_version_re" / "version_re" are only set for tools whose *_ASSET
+# filename embeds the version number a second time (see module docstring).
+# version_re's single capture group pulls the numeral out of *_VERSION;
+# version_transform (if set) adapts it to the asset filename's own spelling
+# of that numeral; asset_version_re then locates and replaces that numeral
+# inside *_ASSET, leaving the rest of the filename (arch, extension, any
+# fixed prefix like temurin's major-version-specific "OpenJDK25U") untouched.
 TOOLS = {
-    "FNM": "Schniz/fnm",
-    "FZF": "junegunn/fzf",
-    "ZOXIDE": "ajeetdsouza/zoxide",
-    "TEMURIN": "adoptium/temurin25-binaries",
-    "UV": "astral-sh/uv",
+    "FNM": {"repo": "Schniz/fnm"},
+    "FZF": {
+        "repo": "junegunn/fzf",
+        "version_re": r"v([0-9.]+)",
+        "asset_version_re": r"[0-9]+\.[0-9]+\.[0-9]+",
+    },
+    "ZOXIDE": {
+        "repo": "ajeetdsouza/zoxide",
+        "version_re": r"v([0-9.]+)",
+        "asset_version_re": r"[0-9]+\.[0-9]+\.[0-9]+",
+    },
+    "TEMURIN": {
+        "repo": "adoptium/temurin25-binaries",
+        # jdk-25.0.4+7 -> 25.0.4+7 -> (version_transform) -> 25.0.4_7, matching
+        # the asset filename's ..._hotspot_25.0.4_7.tar.gz spelling.
+        "version_re": r"jdk-([0-9.]+\+[0-9]+)",
+        "version_transform": lambda v: v.replace("+", "_"),
+        "asset_version_re": r"[0-9]+\.[0-9]+\.[0-9]+_[0-9]+",
+    },
+    "UV": {"repo": "astral-sh/uv"},
 }
+
+
+def fix_asset_versions(name: str, meta: dict, version: str, content: str) -> tuple[str, bool]:
+    """Rewrite the version numeral embedded in every {name}_ASSET occurrence
+    to match {name}_VERSION. No-op for tools without an asset_version_re."""
+    if "asset_version_re" not in meta:
+        return content, False
+
+    version_match = re.search(meta["version_re"], version)
+    if not version_match:
+        print(f"::error::{name}: version {version!r} doesn't match expected pattern {meta['version_re']!r}")
+        raise SystemExit(1)
+    numeral = version_match.group(1)
+    if "version_transform" in meta:
+        numeral = meta["version_transform"](numeral)
+
+    changed = False
+
+    def repl(m: re.Match) -> str:
+        nonlocal changed
+        prefix, old_numeral, suffix = m.group(1), m.group(2), m.group(3)
+        if old_numeral != numeral:
+            print(f"::notice::{name}_ASSET: version numeral {old_numeral} -> {numeral}")
+            changed = True
+        return f"{prefix}{numeral}{suffix}"
+
+    pattern = re.compile(rf"({name}_ASSET=\S*?)({meta['asset_version_re']})(\S*?;)")
+    new_content = pattern.sub(repl, content)
+    return new_content, changed
 
 
 def find_dockerfiles() -> list[Path]:
@@ -50,11 +109,15 @@ def process_dockerfile(path: Path) -> bool:
     content = path.read_text()
     changed = False
 
-    for name, repo in TOOLS.items():
+    for name, meta in TOOLS.items():
+        repo = meta["repo"]
         version_match = re.search(rf"{name}_VERSION=(\S+?);", content)
         if not version_match:
             continue  # this tool isn't pinned in this particular Dockerfile
         version = version_match.group(1)
+
+        content, asset_changed = fix_asset_versions(name, meta, version, content)
+        changed = changed or asset_changed
 
         assets = re.findall(rf"{name}_ASSET=(\S+?);", content)
         old_hashes = re.findall(rf"{name}_SHA256=([0-9a-f]{{64}})", content)
