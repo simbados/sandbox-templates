@@ -1,5 +1,5 @@
 RUN set -eu; \
-    FZF_VERSION=v0.74.2; \
+    FZF_VERSION=v0.74.3; \
     ZOXIDE_VERSION=v0.10.0; \
     case "$(uname -m)" in \
         x86_64) \
