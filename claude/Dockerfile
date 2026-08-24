@@ -98,17 +98,17 @@ RUN eval "$(fnm env --shell bash)" && \
     fnm default lts-latest
 
 RUN set -eu; \
-    FZF_VERSION=v0.74.2; \
+    FZF_VERSION=v0.74.3; \
     ZOXIDE_VERSION=v0.10.0; \
     case "$(uname -m)" in \
         x86_64) \
-            FZF_ASSET=fzf-0.74.2-linux_amd64.tar.gz; \
-            FZF_SHA256=b3648f48675612b69ee35371cf6dc99ca96d767e89b912d079080916ac8ba8bd; \
+            FZF_ASSET=fzf-0.74.3-linux_amd64.tar.gz; \
+            FZF_SHA256=3501a595e4b5c40a6b047340a0e8f805c46fd4e61ef95ef8a136ba8c61cf6f22; \
             ZOXIDE_ASSET=zoxide-0.10.0-x86_64-unknown-linux-musl.tar.gz; \
             ZOXIDE_SHA256=2d93385b99f3e82cf2701609a1bffcad863fbeb75aa3fe7eb6be4d29be68b1ae ;; \
         aarch64) \
-            FZF_ASSET=fzf-0.74.2-linux_arm64.tar.gz; \
-            FZF_SHA256=1373e3f5ed3c468179d4529942ddd96c234bcad1bcacaf238916e26a5234b5b2; \
+            FZF_ASSET=fzf-0.74.3-linux_arm64.tar.gz; \
+            FZF_SHA256=4a17a17b46bd0c4873e995533de508995c11572c0be0664a5dbcf13f60463046; \
             ZOXIDE_ASSET=zoxide-0.10.0-aarch64-unknown-linux-musl.tar.gz; \
             ZOXIDE_SHA256=f1f16c5d6298d63dee467eedea1cdcd8490e43e493bea43acd416dc9033ef641 ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
