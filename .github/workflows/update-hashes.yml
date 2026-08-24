@@ -2,8 +2,13 @@ name: Update pinned release hashes
 
 on:
   pull_request:
+    # Renovate bumps *_VERSION pins in tools/*.dockerfile fragments and
+    # base_image in template.yaml - never the generated **/Dockerfile itself
+    # (that's a build artifact regenerated below, and disabled as a Renovate
+    # target in renovate.json to avoid it clobbering these on regen).
     paths:
-      - "**/Dockerfile"
+      - "tools/**"
+      - "**/template.yaml"
   workflow_dispatch: {}
 
 permissions:
@@ -37,18 +42,26 @@ jobs:
       - name: Fetch real hashes from GitHub releases and compare
         run: python3 scripts/update_hashes.py
 
-      - name: Read result
+      - name: Regenerate Dockerfiles from templates
+        # Fragment/template.yaml edits above (this PR's own diff, plus any
+        # hash fix from the previous step) only take effect in the generated
+        # **/Dockerfile once re-assembled - see scripts/generate_dockerfile.py.
+        run: python3 scripts/generate_dockerfile.py
+
+      - name: Collect changed files
         id: result
-        # hash_update_result.txt holds one changed Dockerfile path per line,
-        # written by the script above; empty file means nothing drifted.
+        # Covers both the fragment hash fixes above and any generated
+        # Dockerfile drift pulled in by the regenerate step; empty means
+        # nothing needs committing.
         run: |
-          if [ -s hash_update_result.txt ]; then
+          git diff --name-only > changed_files.txt
+          if [ -s changed_files.txt ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit corrected hashes via GitHub API
+      - name: Commit corrected hashes and Dockerfiles via GitHub API
         # Goes through the Git Data API instead of `git commit`/`git push` so
         # the resulting commit shows up as "Verified" on GitHub (GitHub signs
         # commits it creates via its own API; a plain CLI commit pushed with
@@ -60,9 +73,9 @@ jobs:
           BRANCH: ${{ github.event.pull_request.head.ref }}
         run: bash scripts/commit_via_api.sh
 
-      - name: Fail if hashes drifted outside a PR
+      - name: Fail if pins or generated Dockerfiles drifted outside a PR
         if: steps.result.outputs.changed == 'true' && github.event_name != 'pull_request'
         run: |
-          echo "::error::Pinned hashes drifted from upstream in the following Dockerfile(s):"
-          cat hash_update_result.txt
+          echo "::error::Pinned hashes or generated Dockerfiles drifted from source:"
+          cat changed_files.txt
           exit 1

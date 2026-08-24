@@ -8,9 +8,30 @@
       // hash-update pipeline against it. Remove this rule once done.
       "matchDepNames": ["Schniz/fnm"],
       "prHourlyLimit": 10
+    },
+    {
+      // Generated Dockerfiles are build artifacts (scripts/generate_dockerfile.py)
+      // assembled from template.yaml + tools/*.dockerfile fragments. base_image
+      // is managed via the customManager below instead, so the default
+      // dockerfile manager must never edit FROM lines here directly - a later
+      // regenerate would silently overwrite (revert) any bump it made.
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": ["**/Dockerfile"],
+      "enabled": false
     }
   ],
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)template\\.yaml$/"
+      ],
+      "matchStrings": [
+        "base_image:\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
     {
       "customType": "regex",
       "managerFilePatterns": [

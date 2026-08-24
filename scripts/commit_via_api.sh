@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Commit the files listed in hash_update_result.txt through GitHub's Git Data
+# Commit the files listed in changed_files.txt through GitHub's Git Data
 # API instead of `git commit`/`git push`. Commits made this way are shown as
 # "Verified" by GitHub automatically (GitHub itself signs them), unlike a
 # plain CLI commit pushed with GITHUB_TOKEN, which shows as unverified even
@@ -9,8 +9,8 @@
 # Env vars: REPO ("owner/repo"), BRANCH (branch to update).
 set -euo pipefail
 
-RESULT_FILE="hash_update_result.txt"
-COMMIT_MESSAGE="chore: sync pinned release hashes with upstream"
+RESULT_FILE="changed_files.txt"
+COMMIT_MESSAGE="chore: sync pinned release hashes and regenerate Dockerfiles"
 
 if [ ! -s "$RESULT_FILE" ]; then
   echo "No changed files to commit."
