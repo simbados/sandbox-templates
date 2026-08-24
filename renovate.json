@@ -53,6 +53,16 @@
       "depNameTemplate": "adoptium/temurin25-binaries",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["UV_VERSION=(?<currentValue>[0-9.]+);"],
+      "depNameTemplate": "astral-sh/uv",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
     }
   ]
 }
