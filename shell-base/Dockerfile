@@ -4,21 +4,7 @@
 # fragment), then regenerate with:
 #   python3 scripts/generate_dockerfile.py base-ubuntu
 
-FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
-
-# Bare base images (e.g. plain ubuntu) have no non-root user. Every other
-# tools/*.dockerfile fragment assumes USER agent with home /home/agent and
-# passwordless sudo (see the hardcoded /home/agent paths in temurin.dockerfile
-# and fnm.dockerfile, and apt-packages.dockerfile's `sudo apt-get`), so this
-# fragment must run first, as root, to create that before anything else does.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends sudo ca-certificates curl git && \
-    rm -rf /var/lib/apt/lists/* && \
-    useradd --create-home --shell /bin/bash agent && \
-    echo 'agent ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/agent && \
-    chmod 0440 /etc/sudoers.d/agent
-
-USER agent
+FROM docker/sandbox-templates:shell@sha256:c183a8ba03cdb30011c73f555c773c5712b84c6ea066f18409253dcab2cfe799
 
 # Idempotent if the current template already switched to agent earlier in
 # its tools list (e.g. via generic-tools): re-selecting the same user is a

@@ -1,0 +1,9 @@
+base_image: docker/sandbox-templates:shell@sha256:c183a8ba03cdb30011c73f555c773c5712b84c6ea066f18409253dcab2cfe799
+tools:
+  - security-presets
+  - apt-packages
+  - fnm
+  - fzf-zoxide
+  - temurin
+  - pnpm
+  - uv
