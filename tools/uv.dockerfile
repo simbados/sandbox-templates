@@ -1,5 +1,5 @@
 RUN set -eu; \
-    UV_VERSION=0.12.5; \
+    UV_VERSION=0.12.6; \
     case "$(uname -m)" in \
         x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2 ;; \
         aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=9bf43b4d1a07665bf64d4c4e710930b382321a785e0eb10aac07f46471f86a31 ;; \
