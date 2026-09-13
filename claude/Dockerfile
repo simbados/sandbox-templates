@@ -38,6 +38,12 @@ RUN cat <<'EOF' > ~/.config/uv/uv.toml
 exclude-newer = "7 days"
 EOF
 
+# Ships Claude Code's global user memory (~/.claude/CLAUDE.md) so its
+# package-manager and network-access guidance applies regardless of which
+# project directory a session starts in.
+RUN mkdir -p ~/.claude
+COPY --chown=agent:agent config/CLAUDE.md /home/agent/.claude/CLAUDE.md
+
 RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
