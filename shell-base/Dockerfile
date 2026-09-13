@@ -2,7 +2,7 @@
 #
 # Edit the fragments in tools/ (and this template's template.yaml / prelude
 # fragment), then regenerate with:
-#   python3 scripts/generate_dockerfile.py base-ubuntu
+#   python3 scripts/generate_dockerfile.py shell-base
 
 FROM docker/sandbox-templates:shell@sha256:c183a8ba03cdb30011c73f555c773c5712b84c6ea066f18409253dcab2cfe799
 
@@ -172,10 +172,10 @@ RUN eval "$(fnm env --shell bash)" && \
     npm install -g pnpm
 
 RUN set -eu; \
-    UV_VERSION=0.12.5; \
+    UV_VERSION=0.12.6; \
     case "$(uname -m)" in \
-        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2 ;; \
-        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=9bf43b4d1a07665bf64d4c4e710930b382321a785e0eb10aac07f46471f86a31 ;; \
+        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=8681d8921e7d520fb368991dcf5f9c1905b80f5bf2a265a0ed085c8d8e342477 ;; \
+        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=d58030acd26159499ac82f32da12d1b3c12a3a1bfc414232d9082070c03e128d ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     curl -fsSL -o /tmp/uv.tar.gz "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ASSET}"; \
