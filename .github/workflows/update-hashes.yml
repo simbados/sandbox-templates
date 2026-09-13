@@ -24,7 +24,7 @@ jobs:
     # dispatch (already gated by GitHub's own write-access requirement for that
     # trigger). Prevents an arbitrary fork PR from getting this job to fetch
     # attacker-influenced URLs or push commits.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login == 'renovate[bot]'
+    if: github.event.pull_request.user.login == 'renovate[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
