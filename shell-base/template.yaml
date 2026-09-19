@@ -1,4 +1,4 @@
-base_image: docker/sandbox-templates:shell@sha256:c183a8ba03cdb30011c73f555c773c5712b84c6ea066f18409253dcab2cfe799
+base_image: docker/sandbox-templates:shell@sha256:da4458d89a5f739df50a2a334c08a3d15f15e11f0024bf47b37c88ad348a4644
 tools:
   - security-presets
   - claude-md
