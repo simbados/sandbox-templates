@@ -4,7 +4,7 @@
 # fragment), then regenerate with:
 #   python3 scripts/generate_dockerfile.py claude
 
-FROM docker/sandbox-templates:claude-code-docker@sha256:ae8a46a105752b6d8937d4000f2058e8379af51aebffc2881618ceef7914f639
+FROM docker/sandbox-templates:claude-code-docker@sha256:94670d5b2a2479e182806a7cfd9b4d414ca4050c77281973cd283785e9a5f9d2
 
 # Idempotent if the current template already switched to agent earlier in
 # its tools list (e.g. via generic-tools): re-selecting the same user is a
