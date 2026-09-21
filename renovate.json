@@ -10,6 +10,16 @@
       "prHourlyLimit": 10
     },
     {
+      // uv cuts releases faster than minimumReleaseAge (7 days), so the PR
+      // Renovate opens for it can get stuck pointing at a stale version
+      // instead of the newest one that has actually cleared the age check
+      // (see https://github.com/renovatebot/renovate/discussions/42643).
+      // Forcing a close+recreate instead of an in-place branch update makes
+      // Renovate re-run the full minimumReleaseAge evaluation each time.
+      "matchDepNames": ["astral-sh/uv"],
+      "recreateWhen": "always"
+    },
+    {
       // Generated Dockerfiles are build artifacts (scripts/generate_dockerfile.py)
       // assembled from template.yaml + tools/*.dockerfile fragments. base_image
       // is managed via the customManager below instead, so the default
