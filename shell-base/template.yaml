@@ -4,7 +4,7 @@ tools:
   - claude-md
   - apt-packages
   - fnm
-  - fzf-zoxide
-  - temurin
+#  - fzf-zoxide
+#  - temurin
   - pnpm
   - uv
