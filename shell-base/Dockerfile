@@ -107,10 +107,10 @@ RUN eval "$(fnm env --shell bash)" && \
     npm install -g pnpm
 
 RUN set -eu; \
-    UV_VERSION=0.12.13; \
+    UV_VERSION=0.12.14; \
     case "$(uname -m)" in \
-        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd ;; \
-        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=2eaa5d94f5db7b3a1a092156b9420459e42ab0217d917fe74a876309cef9b5e9 ;; \
+        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=18ef5c3888ae59828cb13f38d57e9389b8173ecc719eff163bfafc74b38f5936 ;; \
+        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=7fb91bd5d10529c60723eaec3caf44726f89280e5aeed78af8fc63fcad004c9b ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     curl -fsSL -o /tmp/uv.tar.gz "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ASSET}"; \
