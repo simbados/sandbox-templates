@@ -1,0 +1,80 @@
+// Archived customManagers/packageRules entries from renovate.json - superseded by mise
+// (fnm/fzf/zoxide/temurin/uv are now installed via mise instead of hand-pinned curl+sha256
+// tools/*.dockerfile fragments; Renovate's native `mise` manager tracks their versions in
+// claude/mise.toml and shell-base/mise.toml directly). Kept here for reference; not read by
+// Renovate (only the top-level renovate.json in the repo root is).
+{
+  "packageRules": [
+    {
+      // TEMPORARY: throttling fnm updates while we were actively testing the
+      // hash-update pipeline against it. Moot now that fnm is gone (mise's core:node
+      // backend manages Node.js directly).
+      "matchDepNames": ["Schniz/fnm"],
+      "prHourlyLimit": 10
+    },
+    {
+      // uv cuts releases faster than minimumReleaseAge (7 days), so the PR Renovate opened
+      // for it could get stuck pointing at a stale version instead of the newest one that
+      // had actually cleared the age check (see
+      // https://github.com/renovatebot/renovate/discussions/42643). If the same problem
+      // recurs under the mise manager, re-add an equivalent rule matching whatever depName
+      // Renovate assigns to uv there.
+      "matchDepNames": ["astral-sh/uv"],
+      "recreateWhen": "always"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["FNM_VERSION=(?<currentValue>v[0-9.]+);"],
+      "depNameTemplate": "Schniz/fnm",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["FZF_VERSION=(?<currentValue>v[0-9.]+);"],
+      "depNameTemplate": "junegunn/fzf",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["ZOXIDE_VERSION=(?<currentValue>v[0-9.]+);"],
+      "depNameTemplate": "ajeetdsouza/zoxide",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      // temurin25-binaries is version-25-specific (Adoptium publishes a separate repo per
+      // major), so this only ever tracked patch/build releases within Java 25 LTS.
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["TEMURIN_VERSION=(?<currentValue>jdk-[0-9.]+\\+[0-9]+);"],
+      "depNameTemplate": "adoptium/temurin25-binaries",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)tools/.*\\.dockerfile$/"
+      ],
+      "matchStrings": ["UV_VERSION=(?<currentValue>[0-9.]+);"],
+      "depNameTemplate": "astral-sh/uv",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver-coerced"
+    }
+  ]
+}

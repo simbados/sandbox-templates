@@ -4,19 +4,31 @@
   "minimumReleaseAge": "7 days",
   "packageRules": [
     {
-      // TEMPORARY: throttling fnm updates while we're actively testing the
-      // hash-update pipeline against it. Remove this rule once done.
-      "matchDepNames": ["Schniz/fnm"],
-      "prHourlyLimit": 10
-    },
-    {
-      // uv cuts releases faster than minimumReleaseAge (7 days), so the PR
-      // Renovate opens for it can get stuck pointing at a stale version
-      // instead of the newest one that has actually cleared the age check
-      // (see https://github.com/renovatebot/renovate/discussions/42643).
-      // Forcing a close+recreate instead of an in-place branch update makes
-      // Renovate re-run the full minimumReleaseAge evaluation each time.
-      "matchDepNames": ["astral-sh/uv"],
+      // uv and pnpm both cut releases faster than minimumReleaseAge (7 days) - pnpm's
+      // 12.x line ships every 2-4 days, uv similarly - so the PR Renovate opens for
+      // either can get stuck pointing at a stale version instead of the newest one
+      // that has actually cleared the age check (see
+      // https://github.com/renovatebot/renovate/discussions/42643). Forcing a
+      // close+recreate instead of an in-place branch update makes Renovate re-run the
+      // full minimumReleaseAge evaluation each time. Both are exact-pinned in
+      // claude/mise.toml / shell-base/mise.toml and tracked by Renovate's native
+      // `mise` manager - depName is the plain TOML key ("uv", "pnpm"), not the
+      // resolved aqua packageName ("astral-sh/uv", "pnpm/pnpm"), per
+      // lib/modules/manager/mise/extract.ts in Renovate's own source. node is
+      // deliberately not included here: it's pinned as the fuzzy "lts" selector,
+      // which that same extractor routes through a lockfile-only update
+      // (isLockfileOnly: true) rather than a normal mise.toml version-bump PR, a
+      // different enough mechanism that it isn't known to hit this bug the same way.
+      //
+      // schedule turns this into a predictable weekly cycle instead of continuous
+      // churn: Renovate only touches these two outside this window if the branch
+      // needs a rebase, never to propose a new version. Close the PR during that
+      // window if the version it landed on isn't the one you want yet - recreateWhen
+      // brings it right back, freshly re-evaluated against minimumReleaseAge, rather
+      // than leaving it closed (the default "ignore this version forever" behavior).
+      "matchManagers": ["mise"],
+      "matchDepNames": ["uv", "pnpm"],
+      "schedule": ["before 4am on monday"],
       "recreateWhen": "always"
     },
     {
@@ -43,55 +55,15 @@
       "versioningTemplate": "docker"
     },
     {
+      // Pins the mise binary itself (tools/mise.dockerfile) - separate from the tools mise
+      // manages, which Renovate's native `mise` manager tracks directly in
+      // claude/mise.toml / shell-base/mise.toml (no customManager needed for those).
       "customType": "regex",
       "managerFilePatterns": [
-        "/(^|/)tools/.*\\.dockerfile$/"
+        "/(^|/)tools/mise\\.dockerfile$/"
       ],
-      "matchStrings": ["FNM_VERSION=(?<currentValue>v[0-9.]+);"],
-      "depNameTemplate": "Schniz/fnm",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver-coerced"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)tools/.*\\.dockerfile$/"
-      ],
-      "matchStrings": ["FZF_VERSION=(?<currentValue>v[0-9.]+);"],
-      "depNameTemplate": "junegunn/fzf",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver-coerced"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)tools/.*\\.dockerfile$/"
-      ],
-      "matchStrings": ["ZOXIDE_VERSION=(?<currentValue>v[0-9.]+);"],
-      "depNameTemplate": "ajeetdsouza/zoxide",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver-coerced"
-    },
-    {
-      // temurin25-binaries is version-25-specific (Adoptium publishes a separate repo per
-      // major), so this only ever tracks patch/build releases within Java 25 LTS - moving to
-      // a later LTS means manually repointing depNameTemplate at the new major's repo.
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)tools/.*\\.dockerfile$/"
-      ],
-      "matchStrings": ["TEMURIN_VERSION=(?<currentValue>jdk-[0-9.]+\\+[0-9]+);"],
-      "depNameTemplate": "adoptium/temurin25-binaries",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver-coerced"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/(^|/)tools/.*\\.dockerfile$/"
-      ],
-      "matchStrings": ["UV_VERSION=(?<currentValue>[0-9.]+);"],
-      "depNameTemplate": "astral-sh/uv",
+      "matchStrings": ["MISE_VERSION=(?<currentValue>[0-9.]+);"],
+      "depNameTemplate": "jdx/mise",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver-coerced"
     }

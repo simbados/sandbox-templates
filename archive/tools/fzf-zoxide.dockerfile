@@ -1,3 +1,7 @@
+# Archived - was already disabled (commented out) in both template.yaml files before this move.
+# If re-enabled, do it via mise instead: both fzf and zoxide are in mise's registry
+# (aqua:junegunn/fzf, aqua:ajeetdsouza/zoxide) - add them as `[tools]` lines in
+# claude/mise.toml / shell-base/mise.toml rather than reviving this fragment.
 RUN set -eu; \
     FZF_VERSION=v0.74.4; \
     ZOXIDE_VERSION=v0.10.0; \

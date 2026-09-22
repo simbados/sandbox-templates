@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Re-verify the pinned GitHub release sha256 hashes in every tools/*.dockerfile
+"""Archived - superseded by `mise lock` (see .github/workflows/update-hashes.yml), now that
+fnm/fzf/zoxide/temurin/uv are installed via mise instead of hand-pinned curl+sha256 fragments.
+Kept here for reference; not invoked by anything active.
+
+Re-verify the pinned GitHub release sha256 hashes in every tools/*.dockerfile
 fragment against the real release assets, and rewrite any that no longer match
 (e.g. after Renovate bumps a *_VERSION pin but leaves the old hash in place).
 

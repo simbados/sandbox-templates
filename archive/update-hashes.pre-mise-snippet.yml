@@ -1,15 +1,16 @@
+# Archived - superseded by the live .github/workflows/update-hashes.yml, which now refreshes
+# claude/mise.lock and shell-base/mise.lock via `mise lock` instead of running
+# archive/scripts/update_hashes.py against tools/*.dockerfile fragments. Kept here for reference.
 name: Update pinned release hashes
 
 on:
   pull_request:
-    # Renovate bumps MISE_VERSION in tools/mise.dockerfile, tool versions in
-    # */mise.toml (via Renovate's native mise manager), and base_image in
-    # template.yaml - never the generated **/Dockerfile itself (that's a build
-    # artifact regenerated below, and disabled as a Renovate target in
-    # renovate.json to avoid it clobbering these on regen).
+    # Renovate bumps *_VERSION pins in tools/*.dockerfile fragments and
+    # base_image in template.yaml - never the generated **/Dockerfile itself
+    # (that's a build artifact regenerated below, and disabled as a Renovate
+    # target in renovate.json to avoid it clobbering these on regen).
     paths:
       - "tools/**"
-      - "**/mise.toml"
       - "**/template.yaml"
   workflow_dispatch: {}
 
@@ -36,39 +37,25 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
-      - name: Install mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          # Gates which mise *binary* release this step installs - separate from, and unrelated
-          # to, the minimum_release_age set in claude/mise.toml / shell-base/mise.toml, which
-          # gates the age of the tools mise then installs (node/pnpm/uv). Without this, the step
-          # would just install whatever mise release is currently latest.
-          minimum_release_age: 7d
+          python-version: "3.x"
 
-      - name: Refresh mise lockfiles
-        # Re-resolves checksums/URLs for the currently-configured (exact-pinned) versions in each
-        # image's mise.toml, e.g. after Renovate's native `mise` manager bumps a version there -
-        # the direct successor to archive/scripts/update_hashes.py's job. Not --bump: our tools
-        # are pinned to exact versions, not fuzzy specs, so we only want fresh checksums for
-        # whatever's already configured, not to re-resolve to a newer version here.
-        run: |
-          for dir in claude shell-base; do
-            (cd "$dir" && mise trust mise.toml && mise lock --platform linux-x64,linux-arm64)
-          done
+      - name: Fetch real hashes from GitHub releases and compare
+        run: python3 scripts/update_hashes.py
 
       - name: Regenerate Dockerfiles from templates
-        # Fragment/template.yaml edits (this PR's own diff, e.g. a MISE_VERSION or base_image
-        # bump) only take effect in the generated **/Dockerfile once re-assembled - see
-        # scripts/generate_dockerfile.py. mise.lock changes from the previous step don't affect
-        # generated Dockerfile content (they're a separate COPY'd file), but regenerating here is
-        # still required whenever this PR touched a fragment or template.yaml.
+        # Fragment/template.yaml edits above (this PR's own diff, plus any
+        # hash fix from the previous step) only take effect in the generated
+        # **/Dockerfile once re-assembled - see scripts/generate_dockerfile.py.
         run: python3 scripts/generate_dockerfile.py
 
       - name: Collect changed files
         id: result
-        # Covers both the mise.lock refresh above and any generated Dockerfile
-        # drift pulled in by the regenerate step; empty means nothing needs
-        # committing.
+        # Covers both the fragment hash fixes above and any generated
+        # Dockerfile drift pulled in by the regenerate step; empty means
+        # nothing needs committing.
         run: |
           git diff --name-only > changed_files.txt
           if [ -s changed_files.txt ]; then

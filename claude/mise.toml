@@ -1,0 +1,21 @@
+# Tool versions for the claude/ image, installed by tools/claude-mise-tools.dockerfile.
+# Renovate's native `mise` manager (https://docs.renovatebot.com/modules/manager/mise/) tracks
+# the versions below directly - no custom regex managers needed, unlike the old
+# tools/*.dockerfile fragments this replaced (see archive/tools/).
+
+[settings]
+# Also set globally for the built image in ~/.config/mise/config.toml (tools/mise.dockerfile) -
+# that one covers ad-hoc `mise use`/`mise install` runs anywhere in a live sandbox, but it only
+# exists inside the built image. It does NOT cover CI (.github/workflows/update-hashes.yml's
+# `mise lock` step) or `mise install` during the image build itself, both of which read this
+# file directly on a fresh checkout with no image and no global config present - hence keeping it
+# here too. See https://mise.jdx.dev/security.html#minimum-release-age.
+minimum_release_age = "7d"
+
+[tools]
+node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
+pnpm = "12.5.1"
+
+# fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
+# here too - add a line like `zoxide = "0.10.0"` to re-enable one (see archive/tools/ for why each
+# was disabled and which mise backend replaces it).

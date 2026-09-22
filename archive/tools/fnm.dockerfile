@@ -1,3 +1,6 @@
+# Archived - superseded by tools/mise.dockerfile + tools/{claude,shell-base}-mise-tools.dockerfile
+# (mise's core:node backend). Kept here for reference; not built or referenced by anything active.
+
 # Some base images (e.g. docker/sandbox-templates:claude-code-docker) ship
 # nodejs/npm pre-installed via apt (pinned to whatever Ubuntu currently
 # carries) alongside a long tail of node-* library packages that exist only

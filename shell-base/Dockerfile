@@ -49,72 +49,78 @@ RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
      sudo rm -rf /var/lib/apt/lists/*)
 
-# Some base images (e.g. docker/sandbox-templates:claude-code-docker) ship
-# nodejs/npm pre-installed via apt (pinned to whatever Ubuntu currently
-# carries) alongside a long tail of node-* library packages that exist only
-# to satisfy it. Left in place, /usr/bin/node sits on PATH ahead of nothing
-# in particular and quietly wins over fnm's managed install in any shell
-# that hasn't run `fnm env` (e.g. non-interactive invocations that never
-# source ~/.bashrc). Purge it so fnm's install below is unambiguously the
-# only `node`/`npm` on the system. Other bases (e.g. plain ubuntu) never had
-# these packages installed, so `apt-get purge` on them would error "Unable
-# to locate package" - only purge what dpkg actually shows as installed.
-RUN installed="$(dpkg-query -W -f='${Package}\n' nodejs npm libnode-dev libnode127 handlebars 2>/dev/null)" && \
-    if [ -n "$installed" ]; then sudo apt-get purge -y --autoremove $installed; fi; \
-    sudo rm -rf /var/lib/apt/lists/*
+# mise (https://mise.jdx.dev) replaces fnm/fzf/zoxide/temurin/uv/pnpm's separate hand-rolled
+# curl+sha256 installs (see archive/tools/) with one tool version manager, configured per image
+# via <template>/mise.toml (see tools/claude-mise-tools.dockerfile and
+# tools/shell-base-mise-tools.dockerfile). Installed here from GitHub Releases and GPG-verified
+# against mise's release-signing key - deliberately not `curl | sh` - matching this repo's
+# existing curl-then-verify-then-extract convention (closest precedent: temurin.dockerfile).
+#
+# keys/mise-release.asc fingerprint 24853EC9F655CE80B48E6C3A8B81C9D17413A06D - confirmed against
+# two independent sources: https://mise.jdx.dev/installing-mise.html quotes this exact fingerprint
+# for verifying the mise.run install script, and it matches the key ID computed locally from the
+# "Release gpg key" block published in https://github.com/jdx/mise/blob/main/SECURITY.md ("used to
+# sign deb releases and the SHASUMS files contained within releases").
+#
+# Each release's SHASUMS256.asc is a GPG clearsigned checksum manifest (not a detached signature
+# over a separate file), so `gpg --verify` on it alone is both correct and sufficient - the
+# checksum lines can then be read straight back out of that same now-verified file. See
+# https://mise.jdx.dev/installing-mise.html#github-releases. A hardcoded MISE_SHA256 pin below is
+# checked in addition to the live GPG verification (same belt-and-suspenders as temurin.dockerfile),
+# so a build always gets the exact same reviewed bytes rather than "whatever is currently signed".
+#
+# Requires gnupg (from apt-packages.dockerfile).
+COPY --chown=agent:agent keys/mise-release.asc /tmp/mise-release.asc
 
 RUN set -eu; \
-    FNM_VERSION=v1.39.0; \
+    MISE_VERSION=2026.9.12; \
     case "$(uname -m)" in \
-        x86_64) FNM_ASSET=fnm-linux.zip; FNM_SHA256=7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224 ;; \
-        aarch64) FNM_ASSET=fnm-arm64.zip; FNM_SHA256=4eaff58b2c5bf30d0934027572dd0b5bbb60d2a1af309230b53662d4b1d45599 ;; \
+        x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a ;; \
+        aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=f344c6961190ed2f68e595ed7cb4f03c36c17812bd608886bec799a3082180ff ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL -o /tmp/fnm.zip "https://github.com/Schniz/fnm/releases/download/${FNM_VERSION}/${FNM_ASSET}"; \
-    echo "${FNM_SHA256}  /tmp/fnm.zip" | sha256sum -c -; \
-    mkdir -p ~/.local/share/fnm; \
-    unzip -q /tmp/fnm.zip -d ~/.local/share/fnm; \
-    rm /tmp/fnm.zip
+    MISE_ASSET="mise-v${MISE_VERSION}-${MISE_PLATFORM}"; \
+    curl -fsSL -o /tmp/mise "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/${MISE_ASSET}"; \
+    curl -fsSL -o /tmp/SHASUMS256.asc "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.asc"; \
+    export GNUPGHOME="$(mktemp -d)"; \
+    gpg --batch --import /tmp/mise-release.asc; \
+    gpg --batch --verify /tmp/SHASUMS256.asc; \
+    rm -rf "$GNUPGHOME" /tmp/mise-release.asc; \
+    LIVE_SHA256="$(grep " \./${MISE_ASSET}\$" /tmp/SHASUMS256.asc | awk '{print $1}')"; \
+    rm /tmp/SHASUMS256.asc; \
+    if [ "$LIVE_SHA256" != "$MISE_SHA256" ]; then \
+        echo "mise ${MISE_VERSION} ${MISE_PLATFORM}: GPG-verified checksum ${LIVE_SHA256} does not match pinned ${MISE_SHA256}" >&2; \
+        exit 1; \
+    fi; \
+    echo "${MISE_SHA256}  /tmp/mise" | sha256sum -c -; \
+    mkdir -p ~/.local/bin; \
+    install -m 755 /tmp/mise ~/.local/bin/mise; \
+    rm /tmp/mise
 
-ENV PATH="/home/agent/.local/share/fnm:$PATH"
-
-RUN echo 'eval "$(fnm env --use-on-cd --shell bash)"' >> ~/.bashrc
-
-RUN mkdir -p ~/.config/fish/conf.d && cat <<'EOF' > ~/.config/fish/conf.d/fnm.fish
-status is-interactive; and fnm env --use-on-cd --shell fish | source
+# Global mise config (~/.config/mise/config.toml), shared by both images, lower precedence than
+# each image's own <template>/mise.toml but applied everywhere mise runs - not just inside a
+# trusted project config. Without this, minimum_release_age only protects the curated tool list
+# in claude/mise.toml / shell-base/mise.toml; this makes it a floor for any ad-hoc `mise use`/
+# `mise install` run anywhere in a live sandbox too. See
+# https://mise.jdx.dev/configuration.html#configuration-hierarchy and
+# https://mise.jdx.dev/security.html#minimum-release-age.
+RUN mkdir -p ~/.config/mise && cat <<'EOF' > ~/.config/mise/config.toml
+[settings]
+minimum_release_age = "7d"
 EOF
 
-# /etc/sandbox-persistent.sh is sourced before every non-interactive shell the
-# Bash tool spawns (via BASH_ENV/CLAUDE_ENV_FILE) — those never source
-# ~/.bashrc or fish's conf.d, so without this `node`/`npm` would be missing
-# there even though fnm is fully installed. No --use-on-cd here deliberately:
-# this line reruns before every single command, and --use-on-cd would make
-# fnm try to auto-switch to whatever version a directory's package.json/
-# .nvmrc pins, hard-failing every command in a directory whose pin isn't
-# installed. Just resolve the configured default (the LTS installed below).
-# Only some base images (e.g. docker/sandbox-templates:claude-code-docker)
-# bake this file in at a path agent can write; others don't ship it at all,
-# so skip rather than fail the build when it's absent.
-RUN if [ -f /etc/sandbox-persistent.sh ]; then \
-        echo 'eval "$(fnm env --shell bash)"' >> /etc/sandbox-persistent.sh; \
-    fi
+# mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
+# fish, and non-interactive invocations alike. Unlike fnm (which needs a per-shell
+# `eval "$(fnm env ...)"` hook in ~/.bashrc, fish's conf.d, AND /etc/sandbox-persistent.sh - see
+# archive/tools/fnm.dockerfile), mise's shims are static files that just need to be found on
+# PATH, so this one ENV line replaces all three of those integration points. See
+# https://mise.jdx.dev/dev-tools/shims.html.
+ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
 
-RUN eval "$(fnm env --shell bash)" && \
-    fnm install --lts && \
-    fnm default lts-latest
+# Installs this image's tools as declared in shell-base/mise.toml (see that file for the list and
+# tools/mise.dockerfile for how the mise binary itself gets here). shell-base/mise.lock pins exact
+# reviewed checksums/provenance so `mise install` doesn't re-resolve against live upstream
+# metadata on every build; .github/workflows/update-hashes.yml keeps it refreshed going forward.
+COPY --chown=agent:agent shell-base/mise.toml shell-base/mise.lock /home/agent/
 
-RUN eval "$(fnm env --shell bash)" && \
-    npm install -g pnpm
-
-RUN set -eu; \
-    UV_VERSION=0.12.10; \
-    case "$(uname -m)" in \
-        x86_64) UV_ASSET=uv-x86_64-unknown-linux-gnu.tar.gz; UV_SHA256=173d95a0c32d18c896c46ba6fafbf3cf9c14ab74b033f81b76c883ef492a976b ;; \
-        aarch64) UV_ASSET=uv-aarch64-unknown-linux-gnu.tar.gz; UV_SHA256=9ff6b9d4665edcdd3a88dcc73cd1eb641754deb927f14e8c62ebfde6bf4f5f5e ;; \
-        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL -o /tmp/uv.tar.gz "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ASSET}"; \
-    echo "${UV_SHA256}  /tmp/uv.tar.gz" | sha256sum -c -; \
-    mkdir -p ~/.local/bin; \
-    tar -xzf /tmp/uv.tar.gz --strip-components=1 -C ~/.local/bin "${UV_ASSET%.tar.gz}/uv" "${UV_ASSET%.tar.gz}/uvx"; \
-    rm /tmp/uv.tar.gz
+RUN mise trust ~/mise.toml && mise install

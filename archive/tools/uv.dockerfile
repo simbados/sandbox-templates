@@ -1,3 +1,6 @@
+# Archived - superseded by tools/mise.dockerfile + tools/shell-base-mise-tools.dockerfile
+# (mise's aqua:astral-sh/uv backend). Kept here for reference; not built or referenced by
+# anything active.
 RUN set -eu; \
     UV_VERSION=0.12.10; \
     case "$(uname -m)" in \

@@ -3,7 +3,5 @@ tools:
   - security-presets
   - claude-md
   - apt-packages
-  - fnm
-#  - fzf-zoxide
-#  - temurin
-  - pnpm
+  - mise
+  - claude-mise-tools

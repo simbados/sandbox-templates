@@ -1,54 +1,3 @@
-# GENERATED FILE - do not edit directly.
-#
-# Edit the fragments in tools/ (and this template's template.yaml / prelude
-# fragment), then regenerate with:
-#   python3 scripts/generate_dockerfile.py claude
-
-FROM docker/sandbox-templates:claude-code-docker@sha256:94670d5b2a2479e182806a7cfd9b4d414ca4050c77281973cd283785e9a5f9d2
-
-# Idempotent if the current template already switched to agent earlier in
-# its tools list (e.g. via generic-tools): re-selecting the same user is a
-# no-op. Kept here because templates whose base image ships agent already
-# (no generic-tools needed) still need this before ~ is touched below.
-USER agent
-
-RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
-    cat <<'EOF' >> ~/.npmrc
-# --- managed by config/setup.sh ---
-min-release-age=7
-ignore-scripts=true
-update-notifier=false
-allow-directory=root
-allow-file=root
-allow-remote=root
-# --- end config/setup.sh ---
-EOF
-
-RUN cat <<'EOF' > ~/.config/pnpm/config.yaml
-minimumReleaseAge: 10080
-
-minimumReleaseAgeStrict: true
-
-trustPolicy: no-downgrade
-
-blockExoticSubdeps: true
-EOF
-
-RUN cat <<'EOF' > ~/.config/uv/uv.toml
-exclude-newer = "7 days"
-EOF
-
-# Ships Claude Code's global user memory (~/.claude/CLAUDE.md) so its
-# package-manager and network-access guidance applies regardless of which
-# project directory a session starts in.
-RUN mkdir -p ~/.claude
-COPY --chown=agent:agent config/CLAUDE.md /home/agent/.claude/CLAUDE.md
-
-RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
-    command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
-     sudo rm -rf /var/lib/apt/lists/*)
-
 # mise (https://mise.jdx.dev) replaces fnm/fzf/zoxide/temurin/uv/pnpm's separate hand-rolled
 # curl+sha256 installs (see archive/tools/) with one tool version manager, configured per image
 # via <template>/mise.toml (see tools/claude-mise-tools.dockerfile and
@@ -116,11 +65,3 @@ EOF
 # PATH, so this one ENV line replaces all three of those integration points. See
 # https://mise.jdx.dev/dev-tools/shims.html.
 ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
-
-# Installs this image's tools as declared in claude/mise.toml (see that file for the list and
-# tools/mise.dockerfile for how the mise binary itself gets here). claude/mise.lock pins exact
-# reviewed checksums/provenance so `mise install` doesn't re-resolve against live upstream
-# metadata on every build; .github/workflows/update-hashes.yml keeps it refreshed going forward.
-COPY --chown=agent:agent claude/mise.toml claude/mise.lock /home/agent/
-
-RUN mise trust ~/mise.toml && mise install

@@ -1,3 +1,9 @@
+# Archived - was already disabled (commented out) in both template.yaml files before this move.
+# If re-enabled, do it via mise instead: mise's core:java backend supports Temurin distribution
+# strings directly (see `mise ls-remote java | grep temurin`) - add a `java = "temurin-..."` line
+# to claude/mise.toml / shell-base/mise.toml rather than reviving this fragment and its
+# archive/keys/adoptium-temurin.asc key.
+#
 # Eclipse Temurin 25 (latest LTS), pulled directly from Adoptium's own GitHub releases,
 # sha256-verified, and GPG-verified against Adoptium's vendored signing key (keys/adoptium-temurin.asc,
 # fingerprint 3B04D753C9050D9A5D343F39843C48A565F8F04B - confirmed against the .sig packet metadata,
