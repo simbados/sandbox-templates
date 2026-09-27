@@ -98,18 +98,6 @@ RUN set -eu; \
     install -m 755 /tmp/mise ~/.local/bin/mise; \
     rm /tmp/mise
 
-# Global mise config (~/.config/mise/config.toml), shared by both images, lower precedence than
-# each image's own <template>/mise.toml but applied everywhere mise runs - not just inside a
-# trusted project config. Without this, minimum_release_age only protects the curated tool list
-# in claude/mise.toml / shell-base/mise.toml; this makes it a floor for any ad-hoc `mise use`/
-# `mise install` run anywhere in a live sandbox too. See
-# https://mise.jdx.dev/configuration.html#configuration-hierarchy and
-# https://mise.jdx.dev/security.html#minimum-release-age.
-RUN mkdir -p ~/.config/mise && cat <<'EOF' > ~/.config/mise/config.toml
-[settings]
-minimum_release_age = "7d"
-EOF
-
 # mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
 # fish, and non-interactive invocations alike. Unlike fnm (which needs a per-shell
 # `eval "$(fnm env ...)"` hook in ~/.bashrc, fish's conf.d, AND /etc/sandbox-persistent.sh - see
@@ -122,6 +110,20 @@ ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
 # tools/mise.dockerfile for how the mise binary itself gets here). shell-base/mise.lock pins exact
 # reviewed checksums/provenance so `mise install` doesn't re-resolve against live upstream
 # metadata on every build; .github/workflows/update-hashes.yml keeps it refreshed going forward.
-COPY --chown=agent:agent shell-base/mise.toml shell-base/mise.lock /home/agent/
+#
+# Installed as mise's *global* config (~/.config/mise/config.toml), not as ~/mise.toml: a
+# ~/mise.toml is a project config that only applies when the cwd is under /home/agent, so in a
+# workspace elsewhere (e.g. /Users/...) no version was active and the shims fell through to the
+# base image's own node/npm (and pnpm had nothing to fall back to at all). The global config
+# applies from every directory, is implicitly trusted (no `mise trust`), and its settings
+# (minimum_release_age) also become the floor for ad-hoc `mise use`/`mise install` runs in a live
+# sandbox. The lockfile must sit next to it as mise.lock (mise ignores config.lock there);
+# `--locked` fails the build if mise isn't actually installing from it. See
+# https://mise.jdx.dev/configuration.html#configuration-hierarchy and
+# https://mise.jdx.dev/dev-tools/mise-lock.html.
+# mkdir first so ~/.config/mise is agent-owned rather than created root-owned by COPY.
+RUN mkdir -p ~/.config/mise
+COPY --chown=agent:agent shell-base/mise.toml /home/agent/.config/mise/config.toml
+COPY --chown=agent:agent shell-base/mise.lock /home/agent/.config/mise/mise.lock
 
-RUN mise trust ~/mise.toml && mise install
+RUN mise install --locked

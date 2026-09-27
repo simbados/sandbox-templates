@@ -46,18 +46,6 @@ RUN set -eu; \
     install -m 755 /tmp/mise ~/.local/bin/mise; \
     rm /tmp/mise
 
-# Global mise config (~/.config/mise/config.toml), shared by both images, lower precedence than
-# each image's own <template>/mise.toml but applied everywhere mise runs - not just inside a
-# trusted project config. Without this, minimum_release_age only protects the curated tool list
-# in claude/mise.toml / shell-base/mise.toml; this makes it a floor for any ad-hoc `mise use`/
-# `mise install` run anywhere in a live sandbox too. See
-# https://mise.jdx.dev/configuration.html#configuration-hierarchy and
-# https://mise.jdx.dev/security.html#minimum-release-age.
-RUN mkdir -p ~/.config/mise && cat <<'EOF' > ~/.config/mise/config.toml
-[settings]
-minimum_release_age = "7d"
-EOF
-
 # mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
 # fish, and non-interactive invocations alike. Unlike fnm (which needs a per-shell
 # `eval "$(fnm env ...)"` hook in ~/.bashrc, fish's conf.d, AND /etc/sandbox-persistent.sh - see
