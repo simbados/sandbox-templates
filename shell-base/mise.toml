@@ -15,7 +15,7 @@ minimum_release_age = "7d"
 [tools]
 node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
 pnpm = "12.5.1"
-uv = "0.12.10"    # carried over from archive/tools/uv.dockerfile's pin at migration time
+uv = "0.12.17"    # carried over from archive/tools/uv.dockerfile's pin at migration time
 
 # fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
 # here too - add a line like `zoxide = "0.10.0"` to re-enable one (see archive/tools/ for why each
