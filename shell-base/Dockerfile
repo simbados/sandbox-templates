@@ -4,7 +4,7 @@
 # fragment), then regenerate with:
 #   python3 scripts/generate_dockerfile.py shell-base
 
-FROM docker/sandbox-templates:shell@sha256:da4458d89a5f739df50a2a334c08a3d15f15e11f0024bf47b37c88ad348a4644
+FROM docker/sandbox-templates:shell-docker@sha256:1560168ac5fb9ce23d413c878349334c5845c07e264cd675d7867f0c78ad1761
 
 # Idempotent if the current template already switched to agent earlier in
 # its tools list (e.g. via generic-tools): re-selecting the same user is a
