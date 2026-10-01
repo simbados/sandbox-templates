@@ -1,0 +1,3 @@
+# Copies of config/ and keys/ made by scripts/generate_dockerfile.py for kit templates
+# (their build context is the template directory) - collapsed in GitHub diffs.
+*/shared/** linguist-generated=true

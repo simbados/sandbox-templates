@@ -1,0 +1,44 @@
+# syntax=docker/sandbox-kit:3
+#
+# v3 workload kit for the shell-base sandbox. Build and run it from the repo root with:
+#   sbx create --name <name> ./shell-base          (or `sbx run ... ./shell-base [PATH]`)
+# sbx builds this directory with shell-base.dockerfile, which is generated - edit
+# template.yaml / tools/*.dockerfile and run `python3 scripts/generate_dockerfile.py shell-base`.
+#
+# The allow list below is the sandbox's runtime egress on top of the global policy. Keep it
+# short: the resolved kit is stored in a 4 KiB container label (docs/kits-v3-migration.md,
+# "Known limits"). Project-specific hosts belong in a project mixin (--kit), not here.
+schemaVersion: "3"
+kind: workload
+displayName: Shell base (simbados)
+description: >-
+  Ubuntu shell sandbox on docker/sandbox-templates:shell-docker with Docker, mise (node, pnpm,
+  uv), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
+sourceUrl: https://github.com/simbados/sandbox-templates
+
+capabilities:
+  - type: com.docker.sandbox/sbx@1
+
+  - type: com.docker.sandbox/network-policy@1
+    config:
+      runtime:
+        allow:
+          # apt: Ubuntu archive (ports.* serves arm64, archive/security.* amd64) and the
+          # Docker apt repo the base image ships
+          - ports.ubuntu.com
+          - archive.ubuntu.com
+          - security.ubuntu.com
+          - download.docker.com
+          # git, and release downloads for mise and its tools
+          - github.com
+          - api.github.com
+          - "*.githubusercontent.com"
+          # mise-managed tool registries
+          - nodejs.org
+          - registry.npmjs.org
+          - pypi.org
+          - files.pythonhosted.org
+          # Docker Hub for the in-sandbox Docker engine
+          - registry-1.docker.io
+          - auth.docker.io
+          - production.cloudflare.docker.com

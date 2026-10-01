@@ -4,13 +4,17 @@ on:
   pull_request:
     # Renovate bumps MISE_VERSION in tools/mise.dockerfile, tool versions in
     # */mise.toml (via Renovate's native mise manager), and base_image in
-    # template.yaml - never the generated **/Dockerfile itself (that's a build
-    # artifact regenerated below, and disabled as a Renovate target in
-    # renovate.json to avoid it clobbering these on regen).
+    # template.yaml - never the generated **/Dockerfile or kit
+    # <template>/<template>.dockerfile itself (build artifacts regenerated below,
+    # and disabled as Renovate targets in renovate.json to avoid them clobbering
+    # these on regen). config/ and keys/ are copied into kit templates' shared/, so
+    # editing them also needs a regenerate.
     paths:
       - "tools/**"
       - "**/mise.toml"
       - "**/template.yaml"
+      - "config/**"
+      - "keys/**"
   workflow_dispatch: {}
 
 permissions:
@@ -58,7 +62,8 @@ jobs:
 
       - name: Regenerate Dockerfiles from templates
         # Fragment/template.yaml edits (this PR's own diff, e.g. a MISE_VERSION or base_image
-        # bump) only take effect in the generated **/Dockerfile once re-assembled - see
+        # bump) only take effect in the generated **/Dockerfile (or kit
+        # <template>/<template>.dockerfile) once re-assembled - see
         # scripts/generate_dockerfile.py. mise.lock changes from the previous step don't affect
         # generated Dockerfile content (they're a separate COPY'd file), but regenerating here is
         # still required whenever this PR touched a fragment or template.yaml.
@@ -70,7 +75,9 @@ jobs:
         # drift pulled in by the regenerate step; empty means nothing needs
         # committing.
         run: |
-          git diff --name-only > changed_files.txt
+          # Untracked files too: a kit template's first regenerate creates new
+          # <template>/shared/ copies.
+          { git diff --name-only; git ls-files --others --exclude-standard -- '*/shared/*'; } > changed_files.txt
           if [ -s changed_files.txt ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else

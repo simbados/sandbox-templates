@@ -49,9 +49,11 @@
       // assembled from template.yaml + tools/*.dockerfile fragments. base_image
       // is managed via the customManager below instead, so the default
       // dockerfile manager must never edit FROM lines here directly - a later
-      // regenerate would silently overwrite (revert) any bump it made.
+      // regenerate would silently overwrite (revert) any bump it made. Kit templates
+      // generate <template>/<template>.dockerfile instead of Dockerfile; tools/*.dockerfile
+      // fragments have no FROM line, so matching them too changes nothing.
       "matchManagers": ["dockerfile"],
-      "matchFileNames": ["**/Dockerfile"],
+      "matchFileNames": ["**/Dockerfile", "**/*.dockerfile"],
       "enabled": false
     }
   ],
