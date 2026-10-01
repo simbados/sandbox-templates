@@ -1,4 +1,4 @@
-base_image: docker/sandbox-templates:claude-code-docker@sha256:94670d5b2a2479e182806a7cfd9b4d414ca4050c77281973cd283785e9a5f9d2
+base_image: docker/sandbox-templates:claude-code-docker@sha256:549730947ed8a43182547bb5628245fe6d6c089564dd73d2194e899f791d970f
 tools:
   - security-presets
   - claude-md
