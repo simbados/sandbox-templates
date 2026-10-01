@@ -32,6 +32,19 @@
       "recreateWhen": "always"
     },
     {
+      // The sandbox-templates base images use non-version tags ("shell-docker",
+      // "claude-code-docker"), so Renovate has no matching version to age a digest
+      // update against. Since Renovate 42 (minimumReleaseAgeBehaviour defaults to
+      // "timestamp-required") such digest updates are held as "Pending Status
+      // Checks" on the Dependency Dashboard forever - see "digest updates" in
+      // docs/usage/key-concepts/minimum-release-age.md. Raise them without an age
+      // check instead; minimumReleaseAge still applies to everything else.
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["docker/sandbox-templates"],
+      "matchUpdateTypes": ["digest"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
       // Generated Dockerfiles are build artifacts (scripts/generate_dockerfile.py)
       // assembled from template.yaml + tools/*.dockerfile fragments. base_image
       // is managed via the customManager below instead, so the default
