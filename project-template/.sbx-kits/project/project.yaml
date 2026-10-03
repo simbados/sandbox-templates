@@ -1,0 +1,39 @@
+# syntax=docker/sandbox-kit:3
+#
+# Project mixin for sbx-up (github.com/simbados/sandbox-templates). Copy this repo's
+# project-template/.sbx-kits/ into a project; `sbx-up shell|claude` adds every .sbx-kits/<name>/
+# that holds <name>.yaml with --kit, on top of shell-base. After an edit, run sbx-up again: it
+# recreates the sandbox, since a sandbox keeps the kits it was created with.
+#
+# shell-base already allows apt (Ubuntu), GitHub, nodejs.org, npm, PyPI and Docker Hub at
+# runtime; list only what this project needs on top. Keep the lists short: the composed kit
+# config is stored in a 4 KiB container label.
+schemaVersion: "3"
+kind: mixin
+displayName: Project additions
+capabilities:
+  - type: com.docker.sandbox/network-policy@1
+    config:
+      runtime:
+        # Hosts the project reaches while you work, e.g. api.stripe.com or "*.example.com".
+        allow: []
+      install:
+        # Hosts the install commands below reach. Open only while they run, at sandbox creation.
+        # For apt on arm64 that is ports.ubuntu.com; on amd64 archive.ubuntu.com and
+        # security.ubuntu.com.
+        allow: []
+
+  # Install commands and files, applied when the sandbox is created (before the agent starts).
+  # Commands run in the sandbox as root by default ("0"); use user: "1000" for the agent user.
+  # - type: com.docker.sandbox/lifecycle@1
+  #   config:
+  #     install:
+  #       - command: apt-get update && apt-get install -y --no-install-recommends postgresql-client
+  #         user: "0"
+  #         description: psql for the integration tests
+  #       - command: mise use --global go@1.25.1
+  #         user: "1000"
+  #     files:
+  #       - path: /home/agent/.config/example/config.toml
+  #         content: |
+  #           region = "eu"

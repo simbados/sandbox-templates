@@ -1,8 +1,7 @@
 # mise (https://mise.jdx.dev) replaces fnm/fzf/zoxide/temurin/uv/pnpm's separate hand-rolled
 # curl+sha256 installs (see archive/tools/) with one tool version manager, configured per image
-# via <template>/mise.toml (see tools/claude-mise-tools.dockerfile and
-# tools/shell-base-mise-tools.dockerfile). Installed here from GitHub Releases and GPG-verified
-# against mise's release-signing key - deliberately not `curl | sh` - matching this repo's
+# via <template>/mise.toml (see tools/shell-base-mise-tools.dockerfile). Installed here from
+# GitHub Releases and GPG-verified against mise's release-signing key - deliberately not `curl | sh` - matching this repo's
 # existing curl-then-verify-then-extract convention (closest precedent: temurin.dockerfile).
 #
 # keys/mise-release.asc fingerprint 24853EC9F655CE80B48E6C3A8B81C9D17413A06D - confirmed against

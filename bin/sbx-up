@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# sbx-up - recreate a project's sandbox from this repo's base kits plus the project's own mixins.
+#
+# Run on the host (where sbx is), from a project directory. Put this repo's bin/ on PATH, or
+# symlink this file into a directory on PATH; it finds the repo through its own location.
+#
+#   sbx-up [-n] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
+#   sbx-up [-n] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
+#
+#   PATH   project directory, mounted as the workspace (default: current directory)
+#   ARGS   appended to the workload's launch command (`bash -l`); for claude they replace the
+#          default `-lc 'claude --permission-mode auto'` (claude-mixin seeds settings.json with
+#          defaultMode bypassPermissions; the flag starts the session in auto mode instead)
+#   -n     print the sbx commands instead of running them
+#
+# Every run removes an existing sandbox of the same name first (sbx keeps the kits a sandbox
+# was created with, so changes to shell-base, claude-mixin.ref or .sbx-kits/ need a new sandbox).
+# Anything installed by hand inside the old sandbox is gone; put it in .sbx-kits/ instead.
+#
+# Project mixins: every .sbx-kits/<name>/ directory that holds <name>.yaml is added with --kit, in
+# alphabetical order. See project-template/ for a starting point.
+#
+# Example: in ~/projects/shop with .sbx-kits/project/project.yaml, `sbx-up claude` runs
+#   sbx rm -f shop-claude                                  (only if it exists)
+#   sbx run --name shop-claude \
+#     --kit docker/sbx-kit-claude-mixin:2.1.285@sha256:52a5... \
+#     --kit /Users/me/projects/shop/.sbx-kits/project \
+#     /path/to/sandbox-templates/shell-base /Users/me/projects/shop \
+#     -- -lc 'claude --permission-mode auto'
+set -eo pipefail
+
+usage() {
+  sed -n '2,/^set -eo/{/^set -eo/d;s/^# \{0,1\}//;p;}' "$0" >&2
+  exit "${1:-2}"
+}
+
+# Follows symlinks to this script, then returns the repo root (the parent of bin/).
+#   /usr/local/bin/sbx-up -> ~/projects/sandbox-templates/bin/sbx-up
+#   => ~/projects/sandbox-templates
+repo_root() {
+  local src="${BASH_SOURCE[0]}" dir
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+  done
+  cd -P "$(dirname "$src")/.." && pwd
+}
+
+# Turns a project directory and flavor into a valid sbx sandbox name (letters, digits, hyphens
+# and periods, starting with a letter or digit).
+#   /Users/me/projects/My Shop_2, claude  =>  my-shop-2-claude
+sandbox_name() {
+  local base
+  base="$(basename "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-' | sed 's/^[^a-z0-9]*//; s/-\{2,\}/-/g; s/-$//')"
+  [ -n "$base" ] || base="project"
+  printf '%s-%s\n' "$base" "$2"
+}
+
+run() {
+  if [ -n "$DRY_RUN" ]; then
+    printf '%q ' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+DRY_RUN=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -n) DRY_RUN=1; shift ;;
+    -h|--help) usage 0 ;;
+    *) break ;;
+  esac
+done
+
+FLAVOR="${1:-}"
+case "$FLAVOR" in
+  shell|claude) shift ;;
+  *) usage ;;
+esac
+
+PROJECT="$PWD"
+if [ $# -gt 0 ] && [ "$1" != "--" ]; then
+  PROJECT="$1"
+  shift
+fi
+[ -d "$PROJECT" ] || { echo "sbx-up: not a directory: $PROJECT" >&2; exit 1; }
+PROJECT="$(cd -P "$PROJECT" && pwd)"
+
+ARGS=()
+if [ $# -gt 0 ]; then
+  [ "$1" = "--" ] || usage
+  shift
+  ARGS=("$@")
+fi
+
+REPO="$(repo_root)"
+NAME="$(sandbox_name "$PROJECT" "$FLAVOR")"
+
+KITS=()
+if [ "$FLAVOR" = claude ]; then
+  MIXIN_REF="$(grep -v '^[[:space:]]*\(#\|$\)' "$REPO/claude-mixin.ref" | head -n 1)"
+  [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/claude-mixin.ref" >&2; exit 1; }
+  KITS+=(--kit "$MIXIN_REF")
+  [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'claude --permission-mode auto')
+fi
+
+if [ -d "$PROJECT/.sbx-kits" ]; then
+  for dir in "$PROJECT"/.sbx-kits/*/; do
+    [ -d "$dir" ] || continue
+    dir="${dir%/}"
+    if [ -f "$dir/$(basename "$dir").yaml" ]; then
+      KITS+=(--kit "$dir")
+    else
+      echo "sbx-up: skipping $dir (no $(basename "$dir").yaml inside)" >&2
+    fi
+  done
+fi
+
+if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
+  echo "sbx-up: removing existing sandbox $NAME" >&2
+  run sbx rm -f "$NAME"
+fi
+
+CMD=(sbx run --name "$NAME")
+[ ${#KITS[@]} -eq 0 ] || CMD+=("${KITS[@]}")
+CMD+=("$REPO/shell-base" "$PROJECT")
+[ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
+
+if [ -n "$DRY_RUN" ]; then
+  run "${CMD[@]}"
+else
+  exec "${CMD[@]}"
+fi

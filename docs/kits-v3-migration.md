@@ -1,9 +1,15 @@
 # Migrating to sbx v3 kits
 
 Status: in progress. Researched 2026-09-29 against the Docker Sandboxes docs (links at the
-bottom). On 2026-10-01 the throwaway kit in `kits/kit-smoke/` showed that local v3 kits work with
-the installed sbx and that a kit's allow rule takes effect under the local policy. `shell-base/` is
-converted to a kit; `claude/` is next.
+bottom). On 2026-10-01 a throwaway kit showed that local v3 kits work with the installed sbx and
+that a kit's allow rule takes effect under the local policy. `shell-base/` is a v3 workload kit.
+
+Claude Code: Docker's v3 `claude` workload kit can't be loaded yet (`agent "claude" is already
+registered` while `claude` is a built-in agent), so Claude comes from Docker's `claude-mixin`
+composed onto `shell-base` (`claude-mixin.ref`, `bin/sbx-up claude`), tested on the host on
+2026-10-03. Our own copy of the claude kit was removed. Projects add their own v3 mixins in
+`.sbx-kits/<name>/`; `bin/sbx-up` composes and recreates. Note that the target layout below predates
+this.
 
 ## Goal
 
@@ -150,17 +156,22 @@ sbx policy ls      # confirm no baseline allow rules remain
 
 ## Steps
 
-1. ~~Smoke test: local v3 kit and kit allow rules (`kits/kit-smoke/`).~~ Done.
+1. ~~Smoke test: local v3 kit and kit allow rules.~~ Done.
 2. ~~Generator kit mode, Renovate and CI for the new file names.~~ Done.
-3. ~~Convert `shell-base/`; drop `shell-base/build.sh`.~~ Done in the repo; the kit image builds
-   with `docker buildx build shell-base -f shell-base/shell-base.yaml`. Still to check on the
-   host: `sbx create --name sb-kit-1 ./shell-base`, then `sbx policy log` while installing
-   something with apt, mise, pnpm and uv, and adjust the allow list in `shell-base.yaml`.
-4. Try a project mixin with `shell-base` (`--kit ./.sbx`).
-5. Reset the global policy to Locked Down (host) and repeat step 3's checks.
-6. Convert `claude/` the same way (`claude/claude.yaml` with `api.anthropic.com:443`); drop
-   `claude/build.sh`.
-7. Delete `kits/kit-smoke/`.
+3. ~~Convert `shell-base/`; drop `shell-base/build.sh`.~~ Done, and created on the host.
+4. ~~Claude Code: `shell-base` + Docker's `claude-mixin`.~~ Works on the host (shell, then
+   `claude`). Our own `claude/` kit was removed.
+5. `bin/sbx-up` and `project-template/` written. To check on the host in the first run:
+   - `sbx-up claude` starts Claude directly through `-- -lc 'claude --permission-mode auto'`
+     (appended to shell-base's `bash -l`), and the short `docker/...` mixin reference is accepted;
+   - a project mixin's `lifecycle@1` install commands run (as root by default) and reach the
+     hosts in its `install.allow`;
+   - three kits compose (shell-base + claude-mixin + project), and claude-mixin's `CLAUDE.md`
+     body shows up. shell-base declares no `agent-context@1` profile; if the body is missing,
+     add one to `shell-base.yaml` (`filename: CLAUDE.md` or `AGENTS.md`).
+6. Reset the global policy to Locked Down (host) and check `sbx policy log` with real work.
+7. When sbx drops the built-in `claude`: consider Docker's `claude` workload plus our tools as a
+   mixin instead of `shell-base` + `claude-mixin`.
 
 ## Sources
 

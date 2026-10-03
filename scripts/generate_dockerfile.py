@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Assemble a template's Dockerfile from tools/*.dockerfile fragments.
 
-Each template directory (e.g. claude/) has a template.yaml manifest naming a
+Each template directory (e.g. shell-base/) has a template.yaml manifest naming a
 base image, an optional template-specific prelude fragment, and an ordered
 list of shared tool fragments from tools/. This script concatenates them
 into <template-dir>/Dockerfile.

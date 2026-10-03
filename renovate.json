@@ -11,7 +11,7 @@
       // https://github.com/renovatebot/renovate/discussions/42643). Forcing a
       // close+recreate instead of an in-place branch update makes Renovate re-run the
       // full minimumReleaseAge evaluation each time. Both are exact-pinned in
-      // claude/mise.toml / shell-base/mise.toml and tracked by Renovate's native
+      // shell-base/mise.toml and tracked by Renovate's native
       // `mise` manager - depName is the plain TOML key ("uv", "pnpm"), not the
       // resolved aqua packageName ("astral-sh/uv", "pnpm/pnpm"), per
       // lib/modules/manager/mise/extract.ts in Renovate's own source. node is
@@ -32,8 +32,7 @@
       "recreateWhen": "always"
     },
     {
-      // The sandbox-templates base images use non-version tags ("shell-docker",
-      // "claude-code-docker"), so Renovate has no matching version to age a digest
+      // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
       // update against. Since Renovate 42 (minimumReleaseAgeBehaviour defaults to
       // "timestamp-required") such digest updates are held as "Pending Status
       // Checks" on the Dependency Dashboard forever - see "digest updates" in
@@ -59,6 +58,20 @@
   ],
   "customManagers": [
     {
+      // Docker's claude-mixin kit, composed onto shell-base by `bin/sbx-up claude`. The file
+      // holds one `repo:tag@digest` line; tags are Claude Code versions (2.1.285), so the
+      // docker versioning picks the newest release and keeps the digest pinned to it.
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)claude-mixin\\.ref$/"
+      ],
+      "matchStrings": [
+        "(?<depName>[a-z0-9./_-]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
       "customType": "regex",
       "managerFilePatterns": [
         "/(^|/)template\\.yaml$/"
@@ -72,7 +85,7 @@
     {
       // Pins the mise binary itself (tools/mise.dockerfile) - separate from the tools mise
       // manages, which Renovate's native `mise` manager tracks directly in
-      // claude/mise.toml / shell-base/mise.toml (no customManager needed for those).
+      // shell-base/mise.toml (no customManager needed for those).
       "customType": "regex",
       "managerFilePatterns": [
         "/(^|/)tools/mise\\.dockerfile$/"
