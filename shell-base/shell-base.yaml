@@ -13,7 +13,7 @@ kind: workload
 displayName: Shell base (simbados)
 description: >-
   Ubuntu shell sandbox on docker/sandbox-templates:shell-docker with Docker, mise (node, pnpm,
-  uv), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
+  uv, hunk), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
 sourceUrl: https://github.com/simbados/sandbox-templates
 
 capabilities:
@@ -38,6 +38,8 @@ capabilities:
           - registry.npmjs.org
           - pypi.org
           - files.pythonhosted.org
+          # dependency safety scans (scan-dependencies skill)
+          - api.deps.dev
           # Docker Hub for the in-sandbox Docker engine
           - registry-1.docker.io
           - auth.docker.io

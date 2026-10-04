@@ -45,6 +45,12 @@ EOF
 RUN mkdir -p ~/.claude
 COPY --chown=agent:agent shared/CLAUDE.md shared/AGENTS.md /home/agent/.claude/
 
+# Ships the scan-dependencies skill as a user-level skill (~/.claude/skills/), so it is available
+# in every project. config/AGENTS.md makes it mandatory before any dependency is added. Kit mode
+# flattens COPY sources into shared/ by file name, so skill files must have unique names there.
+RUN mkdir -p ~/.claude/skills/scan-dependencies
+COPY --chown=agent:agent shared/SKILL.md /home/agent/.claude/skills/scan-dependencies/SKILL.md
+
 RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \

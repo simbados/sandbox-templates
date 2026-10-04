@@ -7,7 +7,7 @@ base image, tool versions and the Claude Code mixin up to date.
 ## Pieces
 
 - `shell-base/`: v3 workload kit. Ubuntu `docker/sandbox-templates:shell-docker` with Docker,
-  mise (node, pnpm, uv), supply-chain presets for npm/pnpm/uv, the shared agent guidance
+  mise (node, pnpm, uv, hunk), supply-chain presets for npm/pnpm/uv, the shared agent guidance
   (`config/AGENTS.md`) and a base network allow list. sbx builds it from this directory.
 - `claude-mixin.ref`: Docker's `claude-mixin` kit, pinned by digest. It adds Claude Code, API
   key / subscription sign-in through the sbx proxy (real credentials stay on the host), session
