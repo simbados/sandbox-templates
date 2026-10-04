@@ -119,7 +119,7 @@ ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
 # Installed as mise's *global* config (~/.config/mise/config.toml), not as ~/mise.toml: a
 # ~/mise.toml is a project config that only applies when the cwd is under /home/agent, so in a
 # workspace elsewhere (e.g. /Users/...) no version was active and the shims fell through to the
-# base image's own node/npm (and pnpm had nothing to fall back to at all). The global config
+# base image's own node/npm. The global config
 # applies from every directory, is implicitly trusted (no `mise trust`), and its settings
 # (minimum_release_age) also become the floor for ad-hoc `mise use`/`mise install` runs in a live
 # sandbox. The lockfile must sit next to it as mise.lock (mise ignores config.lock there);

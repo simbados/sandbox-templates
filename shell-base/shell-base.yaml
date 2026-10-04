@@ -12,8 +12,8 @@ schemaVersion: "3"
 kind: workload
 displayName: Shell base (simbados)
 description: >-
-  Ubuntu shell sandbox on docker/sandbox-templates:shell-docker with Docker, mise (node, pnpm,
-  uv, hunk), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
+  Ubuntu shell sandbox on docker/sandbox-templates:shell-docker with Docker, mise (node, hunk,
+  helix), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
 sourceUrl: https://github.com/simbados/sandbox-templates
 
 capabilities:
@@ -33,11 +33,15 @@ capabilities:
           - github.com
           - api.github.com
           - "*.githubusercontent.com"
-          # mise-managed tool registries
+          # package registries
           - nodejs.org
           - registry.npmjs.org
           - pypi.org
           - files.pythonhosted.org
+          # Sigstore, for mise's GitHub attestation checks (TUF trust root; Fulcio/Rekor)
+          - fulcio.sigstore.dev:443
+          - rekor.sigstore.dev:443
+          - tuf-repo-cdn.sigstore.dev:443
           # dependency safety scans (scan-dependencies skill)
           - api.deps.dev
           # Docker Hub for the in-sandbox Docker engine

@@ -45,7 +45,7 @@ jobs:
         with:
           # Gates which mise *binary* release this step installs - separate from, and unrelated
           # to, the minimum_release_age set in shell-base/mise.toml, which
-          # gates the age of the tools mise then installs (node/pnpm/uv). Without this, the step
+          # gates the age of the tools mise then installs. Without this, the step
           # would just install whatever mise release is currently latest.
           minimum_release_age: 7d
 

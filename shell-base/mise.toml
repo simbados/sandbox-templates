@@ -10,12 +10,16 @@
 # step (.github/workflows/update-hashes.yml). See
 # https://mise.jdx.dev/security.html#minimum-release-age.
 minimum_release_age = "7d"
+# TODO: once MISE_VERSION (tools/mise.dockerfile) is >= 2026.9.17, `mise self-update` honours a
+# minimum release age too (https://github.com/jdx/mise/releases/tag/v2026.9.17): it falls back to
+# the setting above, otherwise 24h. Then add `self_update.minimum_release_age = "7d"` here to make
+# that explicit (older mise may reject the unknown key, so not before the bump). The same release
+# also fixes pnpm 12 ignoring mise's minimum_release_age for transitive dependencies.
 
 [tools]
 node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
-pnpm = "12.5.1"
-uv = "0.12.17"    # carried over from archive/tools/uv.dockerfile's pin at migration time
 hunk = "0.22.0"   # terminal diff viewer (aqua:modem-dev/hunk)
+helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
 
 # fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
 # here too - add a line like `zoxide = "0.10.0"` to re-enable one (see archive/tools/ for why each

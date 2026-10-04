@@ -3,7 +3,7 @@
 ## Package Management
 
 - Do not use pip, npm, or any other package manager without explicit user consent — this applies even in auto mode.
-- Never use pip; always use uv for Python package and dependency management.
+- In Python projects, never use pip; always use uv for package and dependency management. If uv isn't installed, ask the user before installing it with mise (`mise use uv@<version>` in the project).
 - Never run `npm install`, `pip install`, or equivalent without explicit consent. If a task requires adding a new dependency, ask the user before installing it.
 - Before adding or importing any new dependency, you MUST run the `scan-dependencies` skill on it and report the result. The scan comes first, before anything is installed, downloaded, locked (e.g. `mise lock`, `uv lock`) or written to a manifest or lockfile, and before asking for consent to install it. A clean scan only means no known issues; it is not a guarantee of safety. Do not proceed with a dependency the scan flags without explicit user approval.
 
