@@ -33,6 +33,8 @@ capabilities:
           - github.com
           - api.github.com
           - "*.githubusercontent.com"
+          # mise docs and metadata
+          - mise.jdx.dev
           # package registries
           - nodejs.org
           - registry.npmjs.org

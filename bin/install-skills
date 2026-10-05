@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# install-skills - copy this repo's agent skills into the host's ~/.claude/skills.
+#
+# Run on the host, not inside a sandbox. sbx mounts the host's ~/.claude/skills read-only over
+# the same path in every sandbox, which hides any skill the image ships there; installing the
+# skills on the host is what makes them show up inside the sandboxes.
+#
+#   install-skills [-n] [DIR]
+#
+#   DIR   skills directory to install into (default: ${CLAUDE_CONFIG_DIR:-~/.claude}/skills)
+#   -n    print what would be copied instead of copying
+#
+# Every directory config/skills/<name>/ that holds a SKILL.md is copied to DIR/<name>/. Files that
+# are already identical are left alone; a changed skill is replaced by this repo's version.
+#
+# Example: `install-skills` with config/skills/scan-dependencies/SKILL.md installs
+#   ~/.claude/skills/scan-dependencies/SKILL.md
+set -eo pipefail
+
+usage() {
+  sed -n '2,/^set -eo/{/^set -eo/d;s/^# \{0,1\}//;p;}' "$0" >&2
+  exit "${1:-2}"
+}
+
+# Follows symlinks to this script, then returns the repo root (the parent of bin/).
+#   /usr/local/bin/install-skills -> ~/projects/sandbox-templates/bin/install-skills
+#   => ~/projects/sandbox-templates
+repo_root() {
+  local src="${BASH_SOURCE[0]}" dir
+  while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+  done
+  cd -P "$(dirname "$src")/.." && pwd
+}
+
+DRY_RUN=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -n) DRY_RUN=1; shift ;;
+    -h|--help) usage 0 ;;
+    -*) usage ;;
+    *) break ;;
+  esac
+done
+[ $# -le 1 ] || usage
+
+# Inside a sandbox the target is the read-only host mount; installing there cannot work.
+if [ -z "$DRY_RUN" ] && [ -z "$1" ] && mount 2>/dev/null | grep -q " on ${HOME}/.claude/skills type virtiofs"; then
+  echo "install-skills: looks like a sandbox (~/.claude/skills is a host mount); run this on the host" >&2
+  exit 1
+fi
+
+TARGET="${1:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills}"
+SOURCE="$(repo_root)/config/skills"
+[ -d "$SOURCE" ] || { echo "install-skills: no skills directory at $SOURCE" >&2; exit 1; }
+
+found=0
+for dir in "$SOURCE"/*/; do
+  [ -f "$dir/SKILL.md" ] || continue
+  dir="${dir%/}"
+  name="$(basename "$dir")"
+  found=1
+  if [ -d "$TARGET/$name" ] && diff -rq "$dir" "$TARGET/$name" >/dev/null 2>&1; then
+    echo "$name: up to date"
+    continue
+  fi
+  if [ -n "$DRY_RUN" ]; then
+    echo "$name: would copy $dir -> $TARGET/$name"
+    continue
+  fi
+  mkdir -p "$TARGET"
+  rm -rf "${TARGET:?}/$name"
+  cp -R "$dir" "$TARGET/$name"
+  echo "$name: installed to $TARGET/$name"
+done
+
+[ "$found" = 1 ] || { echo "install-skills: no skill with a SKILL.md under $SOURCE" >&2; exit 1; }
