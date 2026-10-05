@@ -6,19 +6,26 @@
 #
 #   sbx-up [-n] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
 #   sbx-up [-n] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
+#   sbx-up [-n] sealed shell|claude [-- ARGS...]
+#                                            throwaway sandbox sealed-shell / sealed-claude: an
+#                                            empty workspace, no project mixins; the sandbox and
+#                                            its workspace are removed when the session ends
+#   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
 #
-#   PATH   project directory, mounted as the workspace (default: current directory)
+#   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
+#          project to copy the template into
 #   ARGS   appended to the workload's launch command (`bash -l`); for claude they replace the
 #          default `-lc 'claude --permission-mode auto'` (claude-mixin seeds settings.json with
 #          defaultMode bypassPermissions; the flag starts the session in auto mode instead)
-#   -n     print the sbx commands instead of running them
+#   -n     print the commands instead of running them
 #
 # Every run removes an existing sandbox of the same name first (sbx keeps the kits a sandbox
 # was created with, so changes to shell-base, claude-mixin.ref or .sbx-kits/ need a new sandbox).
 # Anything installed by hand inside the old sandbox is gone; put it in .sbx-kits/ instead.
 #
 # Project mixins: every .sbx-kits/<name>/ directory that holds <name>.yaml is added with --kit, in
-# alphabetical order. See project-template/ for a starting point.
+# alphabetical order. See project-template/ for a starting point; `sbx-up kit` copies it and
+# leaves mixins the project already has alone.
 #
 # Example: in ~/projects/shop with .sbx-kits/project/project.yaml, `sbx-up claude` runs
 #   sbx rm -f shop-claude                                  (only if it exists)
@@ -27,6 +34,8 @@
 #     --kit /Users/me/projects/shop/.sbx-kits/project \
 #     /path/to/sandbox-templates/shell-base /Users/me/projects/shop \
 #     -- -lc 'claude --permission-mode auto'
+# and `sbx-up sealed claude` runs the same without the project kit, named sealed-claude, on an
+# empty ~/.cache/sbx-up/sealed-claude, then `sbx rm -f sealed-claude` once Claude Code exits.
 set -eo pipefail
 
 usage() {
@@ -66,6 +75,31 @@ run() {
   fi
 }
 
+# Copies every mixin of project-template/.sbx-kits/ into a project's .sbx-kits/, skipping the ones
+# the project already has.
+#   copy_template ~/projects/shop   => ~/projects/shop/.sbx-kits/project/project.yaml
+copy_template() {
+  local project="$1" src="$REPO/project-template/.sbx-kits" dir name copied=""
+  [ -d "$project" ] || { echo "sbx-up: not a directory: $project" >&2; exit 1; }
+  project="$(cd -P "$project" && pwd)"
+  for dir in "$src"/*/; do
+    [ -d "$dir" ] || continue
+    dir="${dir%/}"
+    name="$(basename "$dir")"
+    if [ -e "$project/.sbx-kits/$name" ]; then
+      echo "sbx-up: $project/.sbx-kits/$name exists, left alone" >&2
+      continue
+    fi
+    run mkdir -p "$project/.sbx-kits"
+    run cp -R "$dir" "$project/.sbx-kits/$name"
+    copied=1
+  done
+  if [ -n "$copied" ] && [ -z "$DRY_RUN" ]; then
+    echo "sbx-up: copied the template to $project/.sbx-kits/" >&2
+    echo "sbx-up: edit .sbx-kits/*/*.yaml, commit it with the project, then run sbx-up shell|claude" >&2
+  fi
+}
+
 DRY_RUN=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -75,19 +109,42 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-FLAVOR="${1:-}"
-case "$FLAVOR" in
-  shell|claude) shift ;;
+REPO="$(repo_root)"
+
+SEALED=""
+case "${1:-}" in
+  shell|claude)
+    FLAVOR="$1"
+    shift
+    ;;
+  sealed)
+    SEALED=1
+    FLAVOR="${2:-}"
+    case "$FLAVOR" in shell|claude) shift 2 ;; *) usage ;; esac
+    ;;
+  kit)
+    shift
+    [ $# -le 1 ] || usage
+    copy_template "${1:-$PWD}"
+    exit 0
+    ;;
   *) usage ;;
 esac
 
-PROJECT="$PWD"
-if [ $# -gt 0 ] && [ "$1" != "--" ]; then
-  PROJECT="$1"
-  shift
+if [ -n "$SEALED" ]; then
+  # A fixed, emptied directory instead of the project: nothing from the host is mounted.
+  NAME="sealed-$FLAVOR"
+  PROJECT="${XDG_CACHE_HOME:-$HOME/.cache}/sbx-up/$NAME"
+else
+  PROJECT="$PWD"
+  if [ $# -gt 0 ] && [ "$1" != "--" ]; then
+    PROJECT="$1"
+    shift
+  fi
+  [ -d "$PROJECT" ] || { echo "sbx-up: not a directory: $PROJECT" >&2; exit 1; }
+  PROJECT="$(cd -P "$PROJECT" && pwd)"
+  NAME="$(sandbox_name "$PROJECT" "$FLAVOR")"
 fi
-[ -d "$PROJECT" ] || { echo "sbx-up: not a directory: $PROJECT" >&2; exit 1; }
-PROJECT="$(cd -P "$PROJECT" && pwd)"
 
 ARGS=()
 if [ $# -gt 0 ]; then
@@ -95,9 +152,6 @@ if [ $# -gt 0 ]; then
   shift
   ARGS=("$@")
 fi
-
-REPO="$(repo_root)"
-NAME="$(sandbox_name "$PROJECT" "$FLAVOR")"
 
 KITS=()
 if [ "$FLAVOR" = claude ]; then
@@ -107,7 +161,7 @@ if [ "$FLAVOR" = claude ]; then
   [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'claude --permission-mode auto')
 fi
 
-if [ -d "$PROJECT/.sbx-kits" ]; then
+if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then
   for dir in "$PROJECT"/.sbx-kits/*/; do
     [ -d "$dir" ] || continue
     dir="${dir%/}"
@@ -129,7 +183,27 @@ CMD=(sbx run --name "$NAME")
 CMD+=("$REPO/shell-base" "$PROJECT")
 [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
 
-if [ -n "$DRY_RUN" ]; then
+if [ -n "$SEALED" ]; then
+  # Removes the throwaway sandbox and its workspace, also after a failed or interrupted run.
+  cleanup() {
+    sbx rm -f "$NAME" >/dev/null 2>&1 || true
+    rm -rf "${PROJECT:?}"
+    echo "sbx-up: removed throwaway sandbox $NAME" >&2
+  }
+  run rm -rf "${PROJECT:?}"
+  run mkdir -p "$PROJECT"
+  if [ -n "$DRY_RUN" ]; then
+    run "${CMD[@]}"
+    run sbx rm -f "$NAME"
+    run rm -rf "$PROJECT"
+  else
+    trap cleanup EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    "${CMD[@]}"
+  fi
+elif [ -n "$DRY_RUN" ]; then
   run "${CMD[@]}"
 else
   exec "${CMD[@]}"

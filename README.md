@@ -46,7 +46,7 @@ On the host (macOS), where `sbx` runs; `sbx-up` doesn't work inside a sandbox.
 6. In each project, copy the template mixin and commit it with the project:
 
    ```bash
-   cp -r ~/projects/sandbox-templates/project-template/.sbx-kits .
+   sbx-up kit            # copies project-template/.sbx-kits/ into the current directory
    ```
 
    Make sure `.sbx-kits` isn't matched by a global gitignore (`git check-ignore -v .sbx-kits`).
@@ -63,6 +63,8 @@ sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens bash
 sbx-up claude         # ... + claude-mixin, starts Claude Code in auto mode
 sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
+sbx-up sealed claude  # throwaway sandbox, see below
+sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
 
 The sandbox is named `<project>-shell` or `<project>-claude`. Every run removes an existing
@@ -71,12 +73,20 @@ with: after `git pull` here or an edit in `.sbx-kits/`, the next `sbx-up` uses t
 installed by hand in the old sandbox is gone, and so is everything else `sbx rm` removes with it
 ("all associated resources"); put lasting setup in `.sbx-kits/`.
 
+`sbx-up sealed shell|claude` starts a throwaway sandbox named `sealed-shell` or `sealed-claude`.
+It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a project and adds no
+project mixins. When the session ends, also after an error or Ctrl-C, `sbx-up` removes the sandbox
+and that directory. Only one of each can run at a time, since a new one replaces the old.
+
+`sbx-up kit` copies the template into a project's `.sbx-kits/` and leaves mixins the project
+already has alone.
+
 Claude Code signs in with `/login` inside the sandbox (the proxy keeps the real tokens on the
 host) or with an API key stored once on the host: `sbx secret set anthropic`.
 
 ## Project additions
 
-Copy `project-template/.sbx-kits/` into a project. Each `.sbx-kits/<name>/<name>.yaml` is a v3 mixin:
+Copy `project-template/.sbx-kits/` into a project with `sbx-up kit`. Each `.sbx-kits/<name>/<name>.yaml` is a v3 mixin:
 allow-listed hosts, install commands and files, and optionally a `<name>.dockerfile` for tools
 that are better built once. See `project-template/README.md`.
 

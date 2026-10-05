@@ -12,6 +12,20 @@ FROM docker/sandbox-templates:shell-docker@sha256:1560168ac5fb9ce23d413c87834933
 # (no generic-tools needed) still need this before ~ is touched below.
 USER agent
 
+# npm presets as environment variables, so they apply to every user and every HOME. npm finds the
+# ~/.npmrc below only through $HOME, and its global npmrc location depends on which npm runs (the
+# mise shim picks mise's npm only with the agent's HOME, the base image's npm otherwise).
+# Environment variables beat every .npmrc, so a project's .npmrc cannot loosen them; pass a flag
+# such as --ignore-scripts=false on the command line for a one-off exception.
+# Only npm 11+ knows min-release-age; the base image's /usr/bin/npm (9.x) ignores it silently.
+ENV NPM_CONFIG_MIN_RELEASE_AGE=7 \
+    NPM_CONFIG_IGNORE_SCRIPTS=true \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_ALLOW_DIRECTORY=root \
+    NPM_CONFIG_ALLOW_FILE=root \
+    NPM_CONFIG_ALLOW_REMOTE=root
+
+# The same presets as a file, for tools that read ~/.npmrc instead of npm's environment.
 RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
     cat <<'EOF' >> ~/.npmrc
 # --- managed by config/setup.sh ---
@@ -55,6 +69,14 @@ RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
      sudo rm -rf /var/lib/apt/lists/*)
+
+# Removes the base image's Debian node/npm (npm 9) and the Debian JavaScript packages that need
+# it. node and npm come from mise; the Debian npm was what ran whenever the mise shim could not
+# find mise's node (another HOME, e.g. root), and npm 9 silently ignores min-release-age.
+# --auto-remove also drops what only node needed (libicu, libssl-dev, ...). Claude Code is a
+# native binary and does not use it. Skipped when the base image has no Debian nodejs.
+RUN ! dpkg -s nodejs >/dev/null 2>&1 || \
+    (sudo apt-get purge -y --auto-remove nodejs npm && sudo rm -rf /var/lib/apt/lists/*)
 
 # mise (https://mise.jdx.dev) replaces fnm/fzf/zoxide/temurin/uv/pnpm's separate hand-rolled
 # curl+sha256 installs (see archive/tools/) with one tool version manager, configured per image
