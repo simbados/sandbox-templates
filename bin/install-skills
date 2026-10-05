@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# install-skills - copy this repo's agent skills into the host's ~/.claude/skills.
+# install-skills - copy this repo's agent skills into the skills folder sbx mounts into sandboxes.
 #
-# Run on the host, not inside a sandbox. sbx mounts the host's ~/.claude/skills read-only over
-# the same path in every sandbox, which hides any skill the image ships there; installing the
-# skills on the host is what makes them show up inside the sandboxes.
+# Run on the host, not inside a sandbox. sbx mounts its own folder
+#   ~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills
+# read-only at /home/agent/.claude/skills in every sandbox (not the host's ~/.claude/skills), which
+# also hides any skill the image ships there. Skills copied into that folder show up in every
+# sandbox. sbx-up runs this before each sandbox start, so running it by hand is rarely needed.
 #
-#   install-skills [-n] [DIR]
+#   install-skills [-n] [-q] [DIR]
 #
-#   DIR   skills directory to install into (default: ${CLAUDE_CONFIG_DIR:-~/.claude}/skills)
+#   DIR   skills folder to install into (default: $SBX_SKILLS_DIR, else the sbx folder above)
 #   -n    print what would be copied instead of copying
+#   -q    only print skills that were (or would be) copied
 #
 # Every directory config/skills/<name>/ that holds a SKILL.md is copied to DIR/<name>/. Files that
 # are already identical are left alone; a changed skill is replaced by this repo's version.
 #
 # Example: `install-skills` with config/skills/scan-dependencies/SKILL.md installs
-#   ~/.claude/skills/scan-dependencies/SKILL.md
+#   ~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills/scan-dependencies/SKILL.md
 set -eo pipefail
 
 usage() {
@@ -36,9 +39,11 @@ repo_root() {
 }
 
 DRY_RUN=""
+QUIET=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -n) DRY_RUN=1; shift ;;
+    -q) QUIET=1; shift ;;
     -h|--help) usage 0 ;;
     -*) usage ;;
     *) break ;;
@@ -46,13 +51,18 @@ while [ $# -gt 0 ]; do
 done
 [ $# -le 1 ] || usage
 
-# Inside a sandbox the target is the read-only host mount; installing there cannot work.
+# Inside a sandbox ~/.claude/skills is that read-only mount; installing there cannot work.
 if [ -z "$DRY_RUN" ] && [ -z "$1" ] && mount 2>/dev/null | grep -q " on ${HOME}/.claude/skills type virtiofs"; then
   echo "install-skills: looks like a sandbox (~/.claude/skills is a host mount); run this on the host" >&2
   exit 1
 fi
 
-TARGET="${1:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills}"
+TARGET="${1:-${SBX_SKILLS_DIR:-$HOME/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills}}"
+# sbx creates the folder's parent; without it sbx is probably not installed or keeps it elsewhere.
+if [ -z "$1" ] && [ -z "$SBX_SKILLS_DIR" ] && [ ! -d "$(dirname "$TARGET")" ]; then
+  echo "install-skills: no sbx folder at $(dirname "$TARGET"); is sbx installed? Set SBX_SKILLS_DIR or pass DIR" >&2
+  exit 1
+fi
 SOURCE="$(repo_root)/config/skills"
 [ -d "$SOURCE" ] || { echo "install-skills: no skills directory at $SOURCE" >&2; exit 1; }
 
@@ -63,7 +73,7 @@ for dir in "$SOURCE"/*/; do
   name="$(basename "$dir")"
   found=1
   if [ -d "$TARGET/$name" ] && diff -rq "$dir" "$TARGET/$name" >/dev/null 2>&1; then
-    echo "$name: up to date"
+    [ -n "$QUIET" ] || echo "$name: up to date"
     continue
   fi
   if [ -n "$DRY_RUN" ]; then

@@ -19,6 +19,9 @@
 #          defaultMode bypassPermissions; the flag starts the session in auto mode instead)
 #   -n     print the commands instead of running them
 #
+# Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
+# sandboxes (bin/install-skills; only changed skills are copied).
+#
 # Every run removes an existing sandbox of the same name first (sbx keeps the kits a sandbox
 # was created with, so changes to shell-base, claude-mixin.ref or .sbx-kits/ need a new sandbox).
 # Anything installed by hand inside the old sandbox is gone; put it in .sbx-kits/ instead.
@@ -172,6 +175,10 @@ if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then
     fi
   done
 fi
+
+# Keeps the skills sbx mounts into every sandbox in sync with config/skills/ (see bin/install-skills).
+# A failure only warns: the sandbox still starts, just without updated skills.
+"$REPO/bin/install-skills" -q ${DRY_RUN:+-n} >&2 || echo "sbx-up: could not install skills, continuing" >&2
 
 if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
   echo "sbx-up: removing existing sandbox $NAME" >&2

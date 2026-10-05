@@ -78,6 +78,11 @@ It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a pr
 project mixins. When the session ends, also after an error or Ctrl-C, `sbx-up` removes the sandbox
 and that directory. Only one of each can run at a time, since a new one replaces the old.
 
+Before each start, `sbx-up` also copies `config/skills/` into the folder sbx mounts read-only at
+`~/.claude/skills` in every sandbox (`~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills`
+on the Mac, not the Mac's own `~/.claude/skills`). Only changed skills are copied; `bin/install-skills`
+does the same by hand.
+
 `sbx-up kit` copies the template into a project's `.sbx-kits/` and leaves mixins the project
 already has alone.
 
