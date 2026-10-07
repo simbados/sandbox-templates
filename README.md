@@ -51,8 +51,8 @@ On the host (macOS), where `sbx` runs; `sbx-up` doesn't work inside a sandbox.
 
    Make sure `.sbx-kits` isn't matched by a global gitignore (`git check-ignore -v .sbx-kits`).
 
-To update the bases later, `git -C ~/projects/sandbox-templates pull`; the next `sbx-up` in a
-project rebuilds from them (sbx reuses its build cache when nothing changed).
+To update the bases later, `git -C ~/projects/sandbox-templates pull`, then `sbx-up -r` in a
+project rebuilds its sandbox from them (sbx reuses its build cache when nothing changed).
 
 ## Usage
 
@@ -61,17 +61,20 @@ From a project directory, on the host:
 ```bash
 sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens bash
 sbx-up claude         # ... + claude-mixin, starts Claude Code in auto mode
+sbx-up -r claude      # rebuild: remove the sandbox and create it from the current kits
 sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
 sbx-up sealed claude  # throwaway sandbox, see below
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
 
-The sandbox is named `<project>-shell` or `<project>-claude`. Every run removes an existing
-sandbox of that name and creates a new one, because a sandbox keeps the kits it was created
-with: after `git pull` here or an edit in `.sbx-kits/`, the next `sbx-up` uses them. Anything
-installed by hand in the old sandbox is gone, and so is everything else `sbx rm` removes with it
-("all associated resources"); put lasting setup in `.sbx-kits/`.
+The sandbox is named `<project>-shell` or `<project>-claude`. If it already exists, `sbx-up`
+starts it again (`sbx run --name`, which also restarts a stopped one) and attaches to it; it only
+creates a sandbox when none exists. A sandbox keeps the kits it was created with, so after
+`git pull` here or an edit in `.sbx-kits/`, run `sbx-up -r`: that removes the sandbox and creates
+it from the current kits. Anything installed by hand in the old sandbox is gone then, and so is
+everything else `sbx rm` removes with it ("all associated resources"); put lasting setup in
+`.sbx-kits/`.
 
 `sbx-up sealed shell|claude` starts a throwaway sandbox named `sealed-shell` or `sealed-claude`.
 It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a project and adds no

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# sbx-up - recreate a project's sandbox from this repo's base kits plus the project's own mixins.
+# sbx-up - start a project's sandbox, built from this repo's base kits plus the project's own mixins.
 #
 # Run on the host (where sbx is), from a project directory. Put this repo's bin/ on PATH, or
 # symlink this file into a directory on PATH; it finds the repo through its own location.
 #
-#   sbx-up [-n] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
-#   sbx-up [-n] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
+#   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
+#   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
 #   sbx-up [-n] sealed shell|claude [-- ARGS...]
 #                                            throwaway sandbox sealed-shell / sealed-claude: an
 #                                            empty workspace, no project mixins; the sandbox and
@@ -18,19 +18,24 @@
 #          default `-lc 'claude --permission-mode auto'` (claude-mixin seeds settings.json with
 #          defaultMode bypassPermissions; the flag starts the session in auto mode instead)
 #   -n     print the commands instead of running them
+#   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
 # sandboxes (bin/install-skills; only changed skills are copied).
 #
-# Every run removes an existing sandbox of the same name first (sbx keeps the kits a sandbox
-# was created with, so changes to shell-base, claude-mixin.ref or .sbx-kits/ need a new sandbox).
-# Anything installed by hand inside the old sandbox is gone; put it in .sbx-kits/ instead.
+# shell and claude reuse an existing sandbox of the same name (`sbx run --name`, which restarts
+# it if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
+# with, so after changes to shell-base, claude-mixin.ref or .sbx-kits/ run with -r: that removes
+# the sandbox first, and anything installed by hand inside it is gone (put it in .sbx-kits/).
+# sealed always creates a fresh sandbox.
 #
 # Project mixins: every .sbx-kits/<name>/ directory that holds <name>.yaml is added with --kit, in
 # alphabetical order. See project-template/ for a starting point; `sbx-up kit` copies it and
 # leaves mixins the project already has alone.
 #
 # Example: in ~/projects/shop with .sbx-kits/project/project.yaml, `sbx-up claude` runs
+#   sbx run --name shop-claude -- -lc 'claude --permission-mode auto'      (if shop-claude exists)
+# and otherwise, or always with -r,
 #   sbx rm -f shop-claude                                  (only if it exists)
 #   sbx run --name shop-claude \
 #     --kit docker/sbx-kit-claude-mixin:2.1.285@sha256:52a5... \
@@ -104,9 +109,11 @@ copy_template() {
 }
 
 DRY_RUN=""
+REBUILD=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -n) DRY_RUN=1; shift ;;
+    -r) REBUILD=1; shift ;;
     -h|--help) usage 0 ;;
     *) break ;;
   esac
@@ -180,7 +187,26 @@ fi
 # A failure only warns: the sandbox still starts, just without updated skills.
 "$REPO/bin/install-skills" -q ${DRY_RUN:+-n} >&2 || echo "sbx-up: could not install skills, continuing" >&2
 
+EXISTS=""
 if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
+  EXISTS=1
+fi
+
+# Reuse: `sbx run --name` restarts and attaches to the existing sandbox, reading its kits and
+# workspace from the sandbox's spec. Kits are left out on purpose: passing a kit with build content
+# would make sbx create the sandbox fresh. ARGS still go along, so `claude` starts Claude Code.
+if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && [ -z "$SEALED" ]; then
+  echo "sbx-up: reusing sandbox $NAME (sbx-up -r $FLAVOR to rebuild it from the current kits)" >&2
+  CMD=(sbx run --name "$NAME")
+  [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
+  if [ -n "$DRY_RUN" ]; then
+    run "${CMD[@]}"
+    exit 0
+  fi
+  exec "${CMD[@]}"
+fi
+
+if [ -n "$EXISTS" ]; then
   echo "sbx-up: removing existing sandbox $NAME" >&2
   run sbx rm -f "$NAME"
 fi
