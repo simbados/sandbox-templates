@@ -33,8 +33,10 @@ capabilities:
           - github.com
           - api.github.com
           - "*.githubusercontent.com"
-          # mise docs and metadata
+          # mise docs and metadata; mise-versions serves the version lists for `mise use`/`install`
+          # (without it mise falls back to slower sources)
           - mise.jdx.dev
+          - mise-versions.jdx.dev
           # package registries
           - nodejs.org
           - registry.npmjs.org
@@ -49,4 +51,6 @@ capabilities:
           # Docker Hub for the in-sandbox Docker engine
           - registry-1.docker.io
           - auth.docker.io
+          # blob CDNs: Docker Hub redirects downloads to either one
           - production.cloudflare.docker.com
+          - production.cloudfront.docker.com
