@@ -4,7 +4,7 @@
 # Run on the host (where sbx is), from a project directory. Put this repo's bin/ on PATH, or
 # symlink this file into a directory on PATH; it finds the repo through its own location.
 #
-#   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
+#   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens fish
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
 #   sbx-up [-n] sealed shell|claude [-- ARGS...]
 #                                            throwaway sandbox sealed-shell / sealed-claude: an
@@ -14,9 +14,10 @@
 #
 #   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
 #          project to copy the template into
-#   ARGS   appended to the workload's launch command (`bash -l`); for claude they replace the
-#          default `-lc 'claude --permission-mode auto'` (claude-mixin seeds settings.json with
-#          defaultMode bypassPermissions; the flag starts the session in auto mode instead)
+#   ARGS   appended to the workload's launch command (`bash -l`); they replace the defaults
+#          `-lc 'exec fish -l'` for shell and `-lc 'claude --permission-mode auto'` for claude
+#          (claude-mixin seeds settings.json with defaultMode bypassPermissions; the flag starts the
+#          session in auto mode instead). `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #
@@ -169,6 +170,9 @@ if [ "$FLAVOR" = claude ]; then
   [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/claude-mixin.ref" >&2; exit 1; }
   KITS+=(--kit "$MIXIN_REF")
   [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'claude --permission-mode auto')
+else
+  # bash -l first, so the login profile runs as before, then fish replaces it.
+  [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'exec fish -l')
 fi
 
 if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then
