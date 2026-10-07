@@ -5,4 +5,5 @@ tools:
   - apt-packages
   - mise
   - shell-base-mise-tools
+  - helix-config
   - sbx-launch
