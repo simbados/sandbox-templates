@@ -60,6 +60,42 @@ jobs:
             (cd "$dir" && mise trust mise.toml && mise lock --platform linux-x64,linux-arm64)
           done
 
+      - name: Refresh mise binary checksums
+        # Renovate's customManager only bumps MISE_VERSION in tools/mise.dockerfile; the two
+        # MISE_SHA256 pins next to it are not tracked by Renovate, and `mise lock` above only
+        # covers the tools mise installs, not mise itself. Re-derive them here from the release's
+        # SHASUMS256.asc, GPG-verified against keys/mise-release.asc exactly as the Dockerfile
+        # does. Only the signed body (gpg --decrypt output) is read, so text outside the
+        # clearsigned block can't inject a hash. A no-op when the pins already match.
+        run: |
+          set -euo pipefail
+          FRAGMENT=tools/mise.dockerfile
+          MISE_VERSION="$(sed -nE 's/.*MISE_VERSION=([0-9.]+);.*/\1/p' "$FRAGMENT")"
+          if [ -z "$MISE_VERSION" ]; then
+            echo "::error::MISE_VERSION not found in $FRAGMENT"
+            exit 1
+          fi
+          curl -fsSL -o "$RUNNER_TEMP/SHASUMS256.asc" \
+            "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.asc"
+          export GNUPGHOME="$(mktemp -d)"
+          gpg --batch --import keys/mise-release.asc
+          gpg --batch --yes --output "$RUNNER_TEMP/SHASUMS256.txt" --decrypt "$RUNNER_TEMP/SHASUMS256.asc"
+          rm -rf "$GNUPGHOME"
+          for MISE_PLATFORM in linux-x64 linux-arm64; do
+            MISE_ASSET="mise-v${MISE_VERSION}-${MISE_PLATFORM}"
+            SHA256="$(awk -v f="./${MISE_ASSET}" '$2 == f {print $1}' "$RUNNER_TEMP/SHASUMS256.txt")"
+            if ! [[ "$SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::No valid checksum for ${MISE_ASSET} in the signed SHASUMS256.asc"
+              exit 1
+            fi
+            sed -i -E "s/(MISE_PLATFORM=${MISE_PLATFORM}; MISE_SHA256=)[0-9a-f]{64}/\1${SHA256}/" "$FRAGMENT"
+            if ! grep -q "MISE_PLATFORM=${MISE_PLATFORM}; MISE_SHA256=${SHA256} " "$FRAGMENT"; then
+              echo "::error::Failed to update the ${MISE_PLATFORM} MISE_SHA256 pin in $FRAGMENT"
+              exit 1
+            fi
+            echo "mise ${MISE_VERSION} ${MISE_PLATFORM}: ${SHA256}"
+          done
+
       - name: Regenerate Dockerfiles from templates
         # Fragment/template.yaml edits (this PR's own diff, e.g. a MISE_VERSION or base_image
         # bump) only take effect in the generated **/Dockerfile (or kit
