@@ -162,6 +162,11 @@ RUN mise install --locked
 RUN mkdir -p ~/.config/helix
 COPY --chown=agent:agent shared/config.toml /home/agent/.config/helix/config.toml
 
+# Make helix (installed via mise, see shell-base/mise.toml) the default editor for git, sudoedit
+# etc. A Docker ENV rather than an `export` in ~/.bashrc or fish's conf.d, so it reaches every
+# shell - interactive bash, fish and non-interactive invocations alike - like mise's PATH does.
+ENV EDITOR=hx VISUAL=hx
+
 # Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx then launches
 # the workload itself, under its own PID 1, so the base image's `tini --` entrypoint ends up as
 # a child process and warns on every start that it can't reap zombies ("Tini is not running as
