@@ -18,7 +18,7 @@ minimum_release_age = "7d"
 
 [tools]
 node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
-hunk = "0.22.0"   # terminal diff viewer (aqua:modem-dev/hunk)
+hunk = "v0.23.0"   # terminal diff viewer (aqua:modem-dev/hunk)
 helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
 
 # fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
