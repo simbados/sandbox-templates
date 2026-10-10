@@ -15,6 +15,12 @@
 - Placeholder or example URLs, hostnames, and image/registry references (in code, config, docs, or answers) must use the reserved `.invalid` TLD (RFC 2606), e.g. `https://registry.example.invalid/my-image`, never a real registry or domain such as `docker.io` or `github.com`. A placeholder that points at a real host can be pulled or fetched by accident.
 - Search for local solutions before reaching out over the network. Check what's already installed or present on disk (tools, files, `--help`/`man` output) before pulling a Docker image, cloning a repo, or fetching a URL for information that may already be available locally.
 
+## Git
+
+- Commit your work yourself: when a task or a self-contained step of it is done and checked, commit it without waiting to be asked. Keep each commit focused on one change, and write a message that says what changed and why.
+- Use semantic commit messages: `[type] summary`, with the summary lowercase and imperative, then an optional body explaining why. Types: `feat` (new behavior), `fix` (bug fix), `chore` (maintenance, config, dependencies), `refactor`, `docs`, `test`. Examples: `[feat] add default git config`, `[fix] add skills to correct folder during startup`.
+- Commits stay unsigned (`commit.gpgsign = false`); there is no signing key in the sandbox. The user signs commits on the host before pushing, so do not push, and do not set up or attempt signing.
+
 ## Coding Guidelines
 
 - For complex functions, add examples as comments above the function.
