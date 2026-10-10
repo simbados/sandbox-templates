@@ -6,4 +6,5 @@ tools:
   - mise
   - shell-base-mise-tools
   - helix-config
+  - git-config
   - sbx-launch

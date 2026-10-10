@@ -1,0 +1,27 @@
+# Default git config for sandboxes, installed as ~/.config/git/config by tools/git-config.dockerfile.
+[user]
+	name = simbados
+	email = 22945705+simbados@users.noreply.github.com
+
+# No signing key lives in the sandbox: commits stay unsigned and are signed on the host before push.
+[commit]
+	gpgsign = false
+
+[alias]
+	s = status
+	c = commit
+	can = commit --amend --no-edit
+
+	a = add
+	aa = add --all
+	d = diff
+	ds = diff --staged
+
+	co = checkout
+	sw = switch
+	br = branch
+
+	p = push
+	pl = pull
+
+	lg = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all
