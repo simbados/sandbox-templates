@@ -79,8 +79,9 @@ everything else `sbx rm` removes with it ("all associated resources"); put lasti
 
 `sbx-up sealed shell|claude` starts a throwaway sandbox named `sealed-shell` or `sealed-claude`.
 It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a project and adds no
-project mixins. When the session ends, also after an error or Ctrl-C, `sbx-up` removes the sandbox
-and that directory. Only one of each can run at a time, since a new one replaces the old.
+project mixins. It runs `sbx run --rm` (sbx 0.47.0 or later), so sbx removes the sandbox when the
+session ends. A sandbox left behind by an interrupted run is removed, and the directory emptied, at
+the next sealed start. Only one of each can run at a time, since a new one replaces the old.
 
 Before each start, `sbx-up` also copies `config/skills/` into the folder sbx mounts read-only at
 `~/.claude/skills` in every sandbox (`~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills`

@@ -48,6 +48,8 @@ capabilities:
           - tuf-repo-cdn.sigstore.dev:443
           # dependency safety scans (scan-dependencies skill)
           - api.deps.dev
+          # Docker docs: sbx release notes and CLI reference
+          - docs.docker.com
           # Docker Hub for the in-sandbox Docker engine
           - registry-1.docker.io
           - auth.docker.io

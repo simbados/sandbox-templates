@@ -8,8 +8,8 @@
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
 #   sbx-up [-n] sealed shell|claude [-- ARGS...]
 #                                            throwaway sandbox sealed-shell / sealed-claude: an
-#                                            empty workspace, no project mixins; the sandbox and
-#                                            its workspace are removed when the session ends
+#                                            empty workspace, no project mixins; sbx removes the
+#                                            sandbox when the session ends (sbx run --rm)
 #   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
 #
 #   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
@@ -44,7 +44,7 @@
 #     /path/to/sandbox-templates/shell-base /Users/me/projects/shop \
 #     -- -lc 'claude --permission-mode auto'
 # and `sbx-up sealed claude` runs the same without the project kit, named sealed-claude, on an
-# empty ~/.cache/sbx-up/sealed-claude, then `sbx rm -f sealed-claude` once Claude Code exits.
+# empty ~/.cache/sbx-up/sealed-claude, with --rm so sbx removes it once Claude Code exits.
 set -eo pipefail
 
 usage() {
@@ -216,31 +216,21 @@ if [ -n "$EXISTS" ]; then
 fi
 
 CMD=(sbx run --name "$NAME")
+# sealed: --rm (sbx 0.47.0+) removes the sandbox once the agent session exits. sbx-up still execs
+# sbx, since tmux/agent.conf tells sandbox panes apart by their foreground process being `sbx`.
+# A sandbox left behind by an interrupted run is removed above on the next sealed start, and the
+# workspace is emptied here before each start.
+[ -z "$SEALED" ] || CMD+=(--rm)
 [ ${#KITS[@]} -eq 0 ] || CMD+=("${KITS[@]}")
 CMD+=("$REPO/shell-base" "$PROJECT")
 [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
 
 if [ -n "$SEALED" ]; then
-  # Removes the throwaway sandbox and its workspace, also after a failed or interrupted run.
-  cleanup() {
-    sbx rm -f "$NAME" >/dev/null 2>&1 || true
-    rm -rf "${PROJECT:?}"
-    echo "sbx-up: removed throwaway sandbox $NAME" >&2
-  }
   run rm -rf "${PROJECT:?}"
   run mkdir -p "$PROJECT"
-  if [ -n "$DRY_RUN" ]; then
-    run "${CMD[@]}"
-    run sbx rm -f "$NAME"
-    run rm -rf "$PROJECT"
-  else
-    trap cleanup EXIT
-    trap 'exit 129' HUP
-    trap 'exit 130' INT
-    trap 'exit 143' TERM
-    "${CMD[@]}"
-  fi
-elif [ -n "$DRY_RUN" ]; then
+fi
+
+if [ -n "$DRY_RUN" ]; then
   run "${CMD[@]}"
 else
   exec "${CMD[@]}"
