@@ -1,0 +1,9 @@
+# Default hunk config, installed as ~/.config/hunk/config.toml by tools/hunk-config.dockerfile.
+# A repo's own .hunk/config.toml overrides it; keys: https://www.hunk.dev/docs/reference/config/
+#
+# The built-in default theme "terminal" reads the terminal's palette, but through sbx and tmux that
+# query gets no answer and hunk falls back to a washed-out xterm palette. Pin a theme instead:
+# github-dark-default was the default before hunk 0.23. Press t in hunk to preview others, e.g.
+# github-dark-high-contrast, one-dark-pro, tokyo-night, catppuccin-mocha.
+theme = "github-dark-default"
+wrap_lines = true

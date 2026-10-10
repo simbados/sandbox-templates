@@ -1,0 +1,7 @@
+# Ships a default hunk config (theme, view settings) as the user-level config in ~/.config/hunk/,
+# so it applies in every project; a repo's own .hunk/config.toml still overrides it. Kit mode
+# flattens COPY sources into shared/ by file name, so the source is hunk.toml, not config.toml
+# (helix already uses that name).
+# mkdir first so ~/.config/hunk is agent-owned rather than created root-owned by COPY.
+RUN mkdir -p ~/.config/hunk
+COPY --chown=agent:agent config/hunk/hunk.toml /home/agent/.config/hunk/config.toml

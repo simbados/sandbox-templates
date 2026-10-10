@@ -11,4 +11,5 @@ tools:
   - claude-md
   - helix-config
   - git-config
+  - hunk-config
   - sbx-launch

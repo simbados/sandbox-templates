@@ -175,6 +175,14 @@ ENV EDITOR=hx VISUAL=hx
 RUN mkdir -p ~/.config/git
 COPY --chown=agent:agent shared/gitconfig /home/agent/.config/git/config
 
+# Ships a default hunk config (theme, view settings) as the user-level config in ~/.config/hunk/,
+# so it applies in every project; a repo's own .hunk/config.toml still overrides it. Kit mode
+# flattens COPY sources into shared/ by file name, so the source is hunk.toml, not config.toml
+# (helix already uses that name).
+# mkdir first so ~/.config/hunk is agent-owned rather than created root-owned by COPY.
+RUN mkdir -p ~/.config/hunk
+COPY --chown=agent:agent shared/hunk.toml /home/agent/.config/hunk/config.toml
+
 # Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx then launches
 # the workload itself, under its own PID 1, so the base image's `tini --` entrypoint ends up as
 # a child process and warns on every start that it can't reap zombies ("Tini is not running as
