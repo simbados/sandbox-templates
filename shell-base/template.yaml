@@ -1,10 +1,14 @@
 base_image: docker/sandbox-templates:shell-docker@sha256:1560168ac5fb9ce23d413c878349334c5845c07e264cd675d7867f0c78ad1761
+# Order is build-cache order: a change to one fragment rebuilds it and everything after it. The
+# slow, rarely changed steps (apt, mise, mise install) come first; small config files that are
+# edited often come last, so editing them doesn't reinstall the toolchain. security-presets stays
+# first since its npm/pnpm/uv settings must apply to `mise install`.
 tools:
   - security-presets
-  - claude-md
   - apt-packages
   - mise
   - shell-base-mise-tools
+  - claude-md
   - helix-config
   - git-config
   - sbx-launch
