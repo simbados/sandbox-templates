@@ -37,6 +37,8 @@ capabilities:
           # (without it mise falls back to slower sources)
           - mise.jdx.dev
           - mise-versions.jdx.dev
+          # hunk docs (themes, config, extensions)
+          - hunk.dev
           # package registries
           - nodejs.org
           - registry.npmjs.org
