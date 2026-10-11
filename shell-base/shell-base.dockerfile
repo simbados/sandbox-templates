@@ -183,6 +183,11 @@ COPY --chown=agent:agent shared/gitconfig /home/agent/.config/git/config
 RUN mkdir -p ~/.config/hunk
 COPY --chown=agent:agent shared/hunk.toml /home/agent/.config/hunk/config.toml
 
+# Extension that shows a toast and rings the terminal bell when the agent comments or replies in a
+# live review (see the file's header).
+RUN mkdir -p ~/.config/hunk/extensions
+COPY --chown=agent:agent shared/agent-notify.ts /home/agent/.config/hunk/extensions/agent-notify.ts
+
 # Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx then launches
 # the workload itself, under its own PID 1, so the base image's `tini --` entrypoint ends up as
 # a child process and warns on every start that it can't reap zombies ("Tini is not running as
