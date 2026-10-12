@@ -1,5 +1,12 @@
 # Agent Sandbox Environment Guidance
 
+## Environment
+
+- You are running inside a Docker Sandbox (`sbx`): an isolated Ubuntu VM, as user `agent` (home `/home/agent`) with passwordless `sudo` and a Docker daemon of its own.
+- The project directory (`$WORKSPACE_DIR`) is shared with the user's host and mounted at the same path. Changes there show up on the host immediately; everything else (home directory, system packages, containers) exists only in this sandbox and is lost when it is recreated.
+- Outbound traffic goes through the sandbox proxy (`HTTPS_PROXY`), which enforces the network allow list (see Network Access).
+- Real credentials never enter the sandbox. API key variables, if set, hold placeholder values that the proxy swaps for the real key on matching requests; don't print them, copy them elsewhere or ask the user for keys.
+
 ## Package Management
 
 - Do not use pip, npm, or any other package manager without explicit user consent — this applies even in auto mode.
@@ -9,7 +16,7 @@
 
 ## Network Access
 
-- You are running inside a Docker Sandbox (`sbx`) whose firewall only allows a custom list of domains chosen by the user. Everything else is blocked by default, so expect outbound requests to unfamiliar hosts to fail.
+- The sandbox firewall only allows a custom list of domains chosen by the user. Everything else is blocked by default, so expect outbound requests to unfamiliar hosts to fail.
 - If a fetch, clone, download, or install fails because a domain is blocked (typically HTTP 403 with a "Blocked by network policy" or "Approval required for <domain>" body, or a connection error), stop and report it to the user immediately, before doing anything else. Name the exact domain(s), explain why you need them, and ask the user to whitelist them on their host, e.g. `sbx policy allow network <domain>[,<domain>…]`.
 - Do not try alternative approaches while a domain is blocked: no mirrors, alternative hosts, proxies, or other sources for the same information (e.g. probing an API directly because its docs site is blocked). Wait for the user to whitelist the domain or tell you how to proceed.
 - Placeholder or example URLs, hostnames, and image/registry references (in code, config, docs, or answers) must use the reserved `.invalid` TLD (RFC 2606), e.g. `https://registry.example.invalid/my-image`, never a real registry or domain such as `docker.io` or `github.com`. A placeholder that points at a real host can be pulled or fetched by accident.
