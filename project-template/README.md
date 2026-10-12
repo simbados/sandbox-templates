@@ -6,6 +6,7 @@ directory:
 ```bash
 sbx-up shell     # shell-base + this project's mixins, opens bash
 sbx-up claude    # ... + Docker's claude-mixin, starts Claude Code
+sbx-up opencode  # ... + Docker's opencode-mixin, starts OpenCode
 ```
 
 `sbx-up` adds every `.sbx-kits/<name>/` that holds `<name>.yaml` as a mixin (`--kit`), so a project

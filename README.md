@@ -1,8 +1,8 @@
 # sandbox-templates
 
-Reusable Docker Sandboxes (`sbx`) bases for shell and Claude Code, plus `sbx-up`, which
+Reusable Docker Sandboxes (`sbx`) bases for shell, Claude Code and OpenCode, plus `sbx-up`, which
 recreates a project's sandbox from them with the project's own additions. Renovate keeps the
-base image, tool versions and the Claude Code mixin up to date.
+base image, tool versions and the agent mixins up to date.
 
 ## Pieces
 
@@ -14,7 +14,10 @@ base image, tool versions and the Claude Code mixin up to date.
 - `claude-mixin.ref`: Docker's `claude-mixin` kit, pinned by digest. It adds Claude Code, API
   key / subscription sign-in through the sbx proxy (real credentials stay on the host), session
   volumes and Claude's allow list on top of shell-base.
-- `bin/sbx-up`: composes the two with a project's mixins and (re)creates the sandbox.
+- `opencode-mixin.ref`: Docker's `opencode-mixin` kit, pinned by digest to `latest` (its version
+  tags need a newer sbx, see `renovate.json`). It adds OpenCode, optional provider credentials
+  through the sbx proxy and OpenCode's allow list on top of shell-base.
+- `bin/sbx-up`: composes shell-base and a mixin with a project's mixins and (re)creates the sandbox.
 - `project-template/`: a starting `.sbx-kits/` for projects.
 
 ## Setup
@@ -22,7 +25,7 @@ base image, tool versions and the Claude Code mixin up to date.
 On the host (macOS), where `sbx` runs; `sbx-up` doesn't work inside a sandbox.
 
 1. Check that `sbx` works: `sbx version` and `sbx ls`.
-2. Clone this repo. `sbx-up` finds `shell-base/` and `claude-mixin.ref` through its own
+2. Clone this repo. `sbx-up` finds `shell-base/` and the `*-mixin.ref` files through its own
    location, so the clone can live anywhere:
 
    ```bash
@@ -62,6 +65,7 @@ From a project directory, on the host:
 ```bash
 sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens fish
 sbx-up claude         # ... + claude-mixin, starts Claude Code in auto mode
+sbx-up opencode       # ... + opencode-mixin, starts OpenCode
 sbx-up -r claude      # rebuild: remove the sandbox and create it from the current kits
 sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
@@ -69,7 +73,7 @@ sbx-up sealed claude  # throwaway sandbox, see below
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
 
-The sandbox is named `<project>-shell` or `<project>-claude`. If it already exists, `sbx-up`
+The sandbox is named `<project>-<flavor>`, e.g. `<project>-shell` or `<project>-claude`. If it already exists, `sbx-up`
 starts it again (`sbx run --name`, which also restarts a stopped one) and attaches to it; it only
 creates a sandbox when none exists. A sandbox keeps the kits it was created with, so after
 `git pull` here or an edit in `.sbx-kits/`, run `sbx-up -r`: that removes the sandbox and creates
@@ -77,7 +81,7 @@ it from the current kits. Anything installed by hand in the old sandbox is gone 
 everything else `sbx rm` removes with it ("all associated resources"); put lasting setup in
 `.sbx-kits/`.
 
-`sbx-up sealed shell|claude` starts a throwaway sandbox named `sealed-shell` or `sealed-claude`.
+`sbx-up sealed shell|claude|opencode` starts a throwaway sandbox named `sealed-<flavor>`.
 It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a project and adds no
 project mixins. It runs `sbx run --rm` (sbx 0.47.0 or later), so sbx removes the sandbox when the
 session ends. A sandbox left behind by an interrupted run is removed, and the directory emptied, at

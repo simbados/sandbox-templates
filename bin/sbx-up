@@ -6,8 +6,9 @@
 #
 #   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens fish
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
-#   sbx-up [-n] sealed shell|claude [-- ARGS...]
-#                                            throwaway sandbox sealed-shell / sealed-claude: an
+#   sbx-up [-n] [-r] opencode [PATH] [-- ARGS...] ... + Docker's opencode-mixin, starts OpenCode
+#   sbx-up [-n] sealed shell|claude|opencode [-- ARGS...]
+#                                            throwaway sandbox sealed-<flavor>: an
 #                                            empty workspace, no project mixins; sbx removes the
 #                                            sandbox when the session ends (sbx run --rm)
 #   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
@@ -15,18 +16,18 @@
 #   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
 #          project to copy the template into
 #   ARGS   appended to the workload's launch command (`bash -l`); they replace the defaults
-#          `-lc 'exec fish -l'` for shell and `-lc 'claude --permission-mode auto'` for claude
+#          `-lc 'exec fish -l'` for shell, `-lc 'claude --permission-mode auto'` for claude
 #          (claude-mixin seeds settings.json with defaultMode bypassPermissions; the flag starts the
-#          session in auto mode instead). `sbx-up shell -- -l` opens bash instead of fish.
+#          session in auto mode instead) and `-lc 'opencode'` for opencode. `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
 # sandboxes (bin/install-skills; only changed skills are copied).
 #
-# shell and claude reuse an existing sandbox of the same name (`sbx run --name`, which restarts
+# shell, claude and opencode reuse an existing sandbox of the same name (`sbx run --name`, which restarts
 # it if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
-# with, so after changes to shell-base, claude-mixin.ref or .sbx-kits/ run with -r: that removes
+# with, so after changes to shell-base, <flavor>-mixin.ref or .sbx-kits/ run with -r: that removes
 # the sandbox first, and anything installed by hand inside it is gone (put it in .sbx-kits/).
 # sealed always creates a fresh sandbox.
 #
@@ -124,14 +125,14 @@ REPO="$(repo_root)"
 
 SEALED=""
 case "${1:-}" in
-  shell|claude)
+  shell|claude|opencode)
     FLAVOR="$1"
     shift
     ;;
   sealed)
     SEALED=1
     FLAVOR="${2:-}"
-    case "$FLAVOR" in shell|claude) shift 2 ;; *) usage ;; esac
+    case "$FLAVOR" in shell|claude|opencode) shift 2 ;; *) usage ;; esac
     ;;
   kit)
     shift
@@ -165,14 +166,20 @@ if [ $# -gt 0 ]; then
 fi
 
 KITS=()
-if [ "$FLAVOR" = claude ]; then
-  MIXIN_REF="$(grep -v '^[[:space:]]*\(#\|$\)' "$REPO/claude-mixin.ref" | head -n 1)"
-  [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/claude-mixin.ref" >&2; exit 1; }
-  KITS+=(--kit "$MIXIN_REF")
-  [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'claude --permission-mode auto')
-else
+if [ "$FLAVOR" = shell ]; then
   # bash -l first, so the login profile runs as before, then fish replaces it.
   [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'exec fish -l')
+else
+  # Each agent flavor adds Docker's mixin pinned in <flavor>-mixin.ref (claude-mixin.ref, ...).
+  MIXIN_REF="$(grep -v '^[[:space:]]*\(#\|$\)' "$REPO/$FLAVOR-mixin.ref" | head -n 1)"
+  [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/$FLAVOR-mixin.ref" >&2; exit 1; }
+  KITS+=(--kit "$MIXIN_REF")
+  if [ ${#ARGS[@]} -eq 0 ]; then
+    case "$FLAVOR" in
+      claude) ARGS=(-lc 'claude --permission-mode auto') ;;
+      opencode) ARGS=(-lc 'opencode') ;;
+    esac
+  fi
 fi
 
 if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then

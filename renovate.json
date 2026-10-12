@@ -50,12 +50,17 @@
   ],
   "customManagers": [
     {
-      // Docker's claude-mixin kit, composed onto shell-base by `bin/sbx-up claude`. The file
-      // holds one `repo:tag@digest` line; tags are Claude Code versions (2.1.285), so the
-      // docker versioning picks the newest release and keeps the digest pinned to it.
+      // Docker's agent mixin kits, composed onto shell-base by `bin/sbx-up claude|opencode`. Each
+      // file holds one `repo:tag@digest` line. claude-mixin's tags are Claude Code versions
+      // (2.1.285), so the docker versioning picks the newest release and keeps the digest pinned
+      // to it. opencode-mixin is pinned to `latest`, because its version tags are built with a
+      // newer sandbox-kit than our sbx accepts (`directory` in agent-context@1). Only digest
+      // updates come up for it, and like the base image's they have no release timestamp, so
+      // minimumReleaseAge holds them as "Pending Status Checks" on the Dependency Dashboard
+      // (see the docker/sandbox-templates rule above) - approve one there to update by hand.
       "customType": "regex",
       "managerFilePatterns": [
-        "/(^|/)claude-mixin\\.ref$/"
+        "/(^|/)(claude|opencode)-mixin\\.ref$/"
       ],
       "matchStrings": [
         "(?<depName>[a-z0-9./_-]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)"
