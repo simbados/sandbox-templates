@@ -70,6 +70,7 @@ sbx-up -r claude      # rebuild: remove the sandbox and create it from the curre
 sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
 sbx-up sealed claude  # throwaway sandbox, see below
+sbx-up sealed -c test claude  # another one next to it, named sealed-claude-test
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
 
@@ -85,7 +86,9 @@ everything else `sbx rm` removes with it ("all associated resources"); put lasti
 It mounts an empty directory (`~/.cache/sbx-up/sealed-<flavor>`) instead of a project and adds no
 project mixins. It runs `sbx run --rm` (sbx 0.47.0 or later), so sbx removes the sandbox when the
 session ends. A sandbox left behind by an interrupted run is removed, and the directory emptied, at
-the next sealed start. Only one of each can run at a time, since a new one replaces the old.
+the next sealed start. Only one of each name can run at a time, since a new one replaces the old;
+`-c NAME` gives a sealed sandbox its own name and directory (`sbx-up sealed -c test claude` runs
+`sealed-claude-test` on `~/.cache/sbx-up/sealed-claude-test`), so several can run side by side.
 
 Before each start, `sbx-up` also copies `config/skills/` into the folder sbx mounts read-only at
 `~/.claude/skills` in every sandbox (`~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills`

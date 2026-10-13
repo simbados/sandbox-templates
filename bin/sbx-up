@@ -7,10 +7,11 @@
 #   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens fish
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
 #   sbx-up [-n] [-r] opencode [PATH] [-- ARGS...] ... + Docker's opencode-mixin, starts OpenCode
-#   sbx-up [-n] sealed shell|claude|opencode [-- ARGS...]
-#                                            throwaway sandbox sealed-<flavor>: an
-#                                            empty workspace, no project mixins; sbx removes the
-#                                            sandbox when the session ends (sbx run --rm)
+#   sbx-up [-n] sealed [-c NAME] shell|claude|opencode [-- ARGS...]
+#                                            throwaway sandbox sealed-<flavor>, or
+#                                            sealed-<flavor>-NAME with -c: an empty workspace, no
+#                                            project mixins; sbx removes the sandbox when the
+#                                            session ends (sbx run --rm)
 #   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
 #
 #   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
@@ -21,6 +22,8 @@
 #          session in auto mode instead) and OpenCode's binary for opencode (see below). `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
+#   -c     sealed only: name the sandbox, so several sealed sandboxes of one flavor can run at once
+#          (`sbx-up sealed -c test claude` => sealed-claude-test, workspace ~/.cache/sbx-up/sealed-claude-test)
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
 # sandboxes (bin/install-skills; only changed skills are copied).
@@ -66,12 +69,18 @@ repo_root() {
   cd -P "$(dirname "$src")/.." && pwd
 }
 
-# Turns a project directory and flavor into a valid sbx sandbox name (letters, digits, hyphens
-# and periods, starting with a letter or digit).
+# Turns a string into a valid part of an sbx sandbox name (letters, digits, hyphens and periods,
+# starting with a letter or digit); prints nothing if no such character is left.
+#   My Shop_2  =>  my-shop-2
+slug() {
+  printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-' | sed 's/^[^a-z0-9]*//; s/-\{2,\}/-/g; s/-$//'
+}
+
+# Turns a project directory and flavor into a valid sbx sandbox name.
 #   /Users/me/projects/My Shop_2, claude  =>  my-shop-2-claude
 sandbox_name() {
   local base
-  base="$(basename "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' '-' | sed 's/^[^a-z0-9]*//; s/-\{2,\}/-/g; s/-$//')"
+  base="$(slug "$(basename "$1")")"
   [ -n "$base" ] || base="project"
   printf '%s-%s\n' "$base" "$2"
 }
@@ -124,6 +133,7 @@ done
 REPO="$(repo_root)"
 
 SEALED=""
+SEALED_NAME=""
 case "${1:-}" in
   shell|claude|opencode)
     FLAVOR="$1"
@@ -131,8 +141,15 @@ case "${1:-}" in
     ;;
   sealed)
     SEALED=1
-    FLAVOR="${2:-}"
-    case "$FLAVOR" in shell|claude|opencode) shift 2 ;; *) usage ;; esac
+    shift
+    if [ "${1:-}" = -c ]; then
+      [ $# -ge 2 ] || usage
+      SEALED_NAME="$(slug "$2")"
+      [ -n "$SEALED_NAME" ] || { echo "sbx-up: not a usable sandbox name: $2" >&2; exit 1; }
+      shift 2
+    fi
+    FLAVOR="${1:-}"
+    case "$FLAVOR" in shell|claude|opencode) shift ;; *) usage ;; esac
     ;;
   kit)
     shift
@@ -145,7 +162,7 @@ esac
 
 if [ -n "$SEALED" ]; then
   # A fixed, emptied directory instead of the project: nothing from the host is mounted.
-  NAME="sealed-$FLAVOR"
+  NAME="sealed-$FLAVOR${SEALED_NAME:+-$SEALED_NAME}"
   PROJECT="${XDG_CACHE_HOME:-$HOME/.cache}/sbx-up/$NAME"
 else
   PROJECT="$PWD"
