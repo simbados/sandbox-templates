@@ -18,7 +18,7 @@
 #   ARGS   appended to the workload's launch command (`bash -l`); they replace the defaults
 #          `-lc 'exec fish -l'` for shell, `-lc 'claude --permission-mode auto'` for claude
 #          (claude-mixin seeds settings.json with defaultMode bypassPermissions; the flag starts the
-#          session in auto mode instead) and `-lc 'opencode'` for opencode. `sbx-up shell -- -l` opens bash instead of fish.
+#          session in auto mode instead) and OpenCode's binary for opencode (see below). `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #
@@ -177,7 +177,10 @@ else
   if [ ${#ARGS[@]} -eq 0 ]; then
     case "$FLAVOR" in
       claude) ARGS=(-lc 'claude --permission-mode auto') ;;
-      opencode) ARGS=(-lc 'opencode') ;;
+      # opencode-mixin's /usr/local/bin/opencode runs `node .../opencode-ai/bin/opencode`, but the
+      # package installs only the native Linux binary there, named opencode.exe, so start that
+      # directly. Back to plain `opencode` once Docker fixes the launcher.
+      opencode) ARGS=(-lc 'exec /opt/opencode/lib/node_modules/opencode-ai/bin/opencode.exe') ;;
     esac
   fi
 fi

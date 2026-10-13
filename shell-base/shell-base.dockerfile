@@ -155,6 +155,12 @@ COPY --chown=agent:agent shared/CLAUDE.md shared/AGENTS.md /home/agent/.claude/
 RUN mkdir -p ~/.claude/skills/scan-dependencies
 COPY --chown=agent:agent shared/SKILL.md /home/agent/.claude/skills/scan-dependencies/SKILL.md
 
+# Creates OpenCode's config directory agent-owned for `sbx-up opencode`. sbx mounts the shared
+# skills at ~/.config/opencode/skills (opencode-mixin's agent-skills@1); without this the mount
+# creates ~/.config/opencode root-owned, and the mixin's startup step, which writes
+# opencode.json there as agent, fails with exit code 2.
+RUN mkdir -p ~/.config/opencode
+
 # Ships a default helix config (theme) as the user-level config in ~/.config/helix/, so it applies
 # in every project; a project's own .helix/ still overrides it. Kit mode flattens COPY sources into
 # shared/ by file name, so this name must stay unique there.

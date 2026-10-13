@@ -9,6 +9,7 @@ tools:
   - mise
   - shell-base-mise-tools
   - claude-md
+  - opencode-config
   - helix-config
   - git-config
   - hunk-config
