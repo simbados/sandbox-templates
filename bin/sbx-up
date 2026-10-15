@@ -26,7 +26,8 @@
 #          (`sbx-up sealed -c test claude` => sealed-claude-test, workspace ~/.cache/sbx-up/sealed-claude-test)
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
-# sandboxes (bin/install-skills; only changed skills are copied).
+# sandboxes (bin/install-skills; only changed skills are copied). Then, if the host has a
+# `lockconfig` command on PATH, it runs that; sbx-up stops if lockconfig fails.
 #
 # shell, claude and opencode reuse an existing sandbox of the same name (`sbx run --name`, which restarts
 # it if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
@@ -217,6 +218,12 @@ fi
 # Keeps the skills sbx mounts into every sandbox in sync with config/skills/ (see bin/install-skills).
 # A failure only warns: the sandbox still starts, just without updated skills.
 "$REPO/bin/install-skills" -q ${DRY_RUN:+-n} >&2 || echo "sbx-up: could not install skills, continuing" >&2
+
+# Host-specific lock step, set up outside this repo; skipped where the command doesn't exist. Unlike
+# the skills, a failure stops sbx-up, so a sandbox never starts on an unlocked config.
+if command -v lockconfig >/dev/null 2>&1; then
+  run lockconfig || { echo "sbx-up: lockconfig failed, not starting the sandbox" >&2; exit 1; }
+fi
 
 EXISTS=""
 if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
