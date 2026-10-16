@@ -7,11 +7,11 @@
 #   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens fish
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
 #   sbx-up [-n] [-r] opencode [PATH] [-- ARGS...] ... + Docker's opencode-mixin, starts OpenCode
-#   sbx-up [-n] sealed [-c NAME] shell|claude|opencode [-- ARGS...]
+#   sbx-up [-n] [-r] sealed [-k] [-c NAME] shell|claude|opencode [-- ARGS...]
 #                                            throwaway sandbox sealed-<flavor>, or
 #                                            sealed-<flavor>-NAME with -c: an empty workspace, no
 #                                            project mixins; sbx removes the sandbox when the
-#                                            session ends (sbx run --rm)
+#                                            session ends (sbx run --rm), unless -k keeps it
 #   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
 #
 #   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
@@ -22,8 +22,12 @@
 #          session in auto mode instead) and OpenCode's binary for opencode (see below). `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
+#          (for sealed only matters with -k; without it sealed always starts fresh)
 #   -c     sealed only: name the sandbox, so several sealed sandboxes of one flavor can run at once
 #          (`sbx-up sealed -c test claude` => sealed-claude-test, workspace ~/.cache/sbx-up/sealed-claude-test)
+#   -k     sealed only: keep the sandbox and its workspace when the session ends; the next
+#          `sbx-up sealed -k` with the same flavor and name reattaches to it like shell|claude|opencode
+#          do. A later sealed start without -k still removes it and empties the workspace.
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
 # sandboxes (bin/install-skills; only changed skills are copied). Then, if the host has a
@@ -33,7 +37,7 @@
 # it if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
 # with, so after changes to shell-base, <flavor>-mixin.ref or .sbx-kits/ run with -r: that removes
 # the sandbox first, and anything installed by hand inside it is gone (put it in .sbx-kits/).
-# sealed always creates a fresh sandbox.
+# sealed always creates a fresh sandbox, except with -k, which reuses a kept one.
 #
 # Project mixins: every .sbx-kits/<name>/ directory that holds <name>.yaml is added with --kit, in
 # alphabetical order. See project-template/ for a starting point; `sbx-up kit` copies it and
@@ -135,6 +139,7 @@ REPO="$(repo_root)"
 
 SEALED=""
 SEALED_NAME=""
+SEALED_KEEP=""
 case "${1:-}" in
   shell|claude|opencode)
     FLAVOR="$1"
@@ -143,12 +148,18 @@ case "${1:-}" in
   sealed)
     SEALED=1
     shift
-    if [ "${1:-}" = -c ]; then
-      [ $# -ge 2 ] || usage
-      SEALED_NAME="$(slug "$2")"
-      [ -n "$SEALED_NAME" ] || { echo "sbx-up: not a usable sandbox name: $2" >&2; exit 1; }
-      shift 2
-    fi
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -c)
+          [ $# -ge 2 ] || usage
+          SEALED_NAME="$(slug "$2")"
+          [ -n "$SEALED_NAME" ] || { echo "sbx-up: not a usable sandbox name: $2" >&2; exit 1; }
+          shift 2
+          ;;
+        -k) SEALED_KEEP=1; shift ;;
+        *) break ;;
+      esac
+    done
     FLAVOR="${1:-}"
     case "$FLAVOR" in shell|claude|opencode) shift ;; *) usage ;; esac
     ;;
@@ -233,8 +244,13 @@ fi
 # Reuse: `sbx run --name` restarts and attaches to the existing sandbox, reading its kits and
 # workspace from the sandbox's spec. Kits are left out on purpose: passing a kit with build content
 # would make sbx create the sandbox fresh. ARGS still go along, so `claude` starts Claude Code.
-if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && [ -z "$SEALED" ]; then
-  echo "sbx-up: reusing sandbox $NAME (sbx-up -r $FLAVOR to rebuild it from the current kits)" >&2
+# sealed reuses only with -k; without it, a kept or left-behind sandbox is replaced below.
+if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && { [ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ]; }; then
+  if [ -n "$SEALED" ]; then
+    echo "sbx-up: reusing sandbox $NAME (sbx-up -r sealed -k ... to start it fresh)" >&2
+  else
+    echo "sbx-up: reusing sandbox $NAME (sbx-up -r $FLAVOR to rebuild it from the current kits)" >&2
+  fi
   CMD=(sbx run --name "$NAME")
   [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
   if [ -n "$DRY_RUN" ]; then
@@ -250,11 +266,12 @@ if [ -n "$EXISTS" ]; then
 fi
 
 CMD=(sbx run --name "$NAME")
-# sealed: --rm (sbx 0.47.0+) removes the sandbox once the agent session exits. sbx-up still execs
-# sbx, since tmux/agent.conf tells sandbox panes apart by their foreground process being `sbx`.
-# A sandbox left behind by an interrupted run is removed above on the next sealed start, and the
-# workspace is emptied here before each start.
-[ -z "$SEALED" ] || CMD+=(--rm)
+# sealed: --rm (sbx 0.47.0+) removes the sandbox once the agent session exits; -k leaves it out so
+# the sandbox stays for the next `sealed -k`. sbx-up still execs sbx, since tmux/agent.conf tells
+# sandbox panes apart by their foreground process being `sbx`. A sandbox left behind by an
+# interrupted run is removed above on the next sealed start, and the workspace is emptied here
+# before each fresh start.
+[ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ] || CMD+=(--rm)
 [ ${#KITS[@]} -eq 0 ] || CMD+=("${KITS[@]}")
 CMD+=("$REPO/shell-base" "$PROJECT")
 [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")

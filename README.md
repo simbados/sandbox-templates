@@ -71,6 +71,7 @@ sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
 sbx-up sealed claude  # throwaway sandbox, see below
 sbx-up sealed -c test claude  # another one next to it, named sealed-claude-test
+sbx-up sealed -k claude  # sealed, but kept after the session; run again to reattach
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
 
@@ -89,6 +90,10 @@ session ends. A sandbox left behind by an interrupted run is removed, and the di
 the next sealed start. Only one of each name can run at a time, since a new one replaces the old;
 `-c NAME` gives a sealed sandbox its own name and directory (`sbx-up sealed -c test claude` runs
 `sealed-claude-test` on `~/.cache/sbx-up/sealed-claude-test`), so several can run side by side.
+`-k` keeps the sandbox and its directory when the session ends (no `--rm`); the next
+`sbx-up sealed -k` with the same flavor and `-c` name reattaches to it, and `sbx-up -r sealed -k`
+starts it fresh. A sealed start without `-k` still replaces it, so give kept ones a `-c` name if you
+also use plain sealed sandboxes of that flavor.
 
 Before each start, `sbx-up` also copies `config/skills/` into the folder sbx mounts read-only at
 `~/.claude/skills` in every sandbox (`~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills`
