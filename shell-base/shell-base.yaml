@@ -37,6 +37,8 @@ capabilities:
           # (without it mise falls back to slower sources)
           - mise.jdx.dev
           - mise-versions.jdx.dev
+          # Java version metadata for `mise use java@...`
+          - mise-java.jdx.dev
           # hunk docs (themes, config, extensions); hunk.dev redirects to www.
           - hunk.dev
           - www.hunk.dev
