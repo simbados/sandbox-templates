@@ -226,6 +226,29 @@ if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then
   done
 fi
 
+EXISTS=""
+if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
+  EXISTS=1
+fi
+
+# Reuse: `sbx run --name` restarts and attaches to the existing sandbox (see below). sealed reuses
+# only with -k; without it, a kept or left-behind sandbox is replaced.
+REUSE=""
+if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && { [ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ]; }; then
+  REUSE=1
+fi
+
+# A fresh sealed start empties its workspace (a kept one being reused keeps it, and only gets it
+# back if it went missing).
+if [ -n "$SEALED" ]; then
+  [ -n "$REUSE" ] || run rm -rf "${PROJECT:?}"
+  run mkdir -p "$PROJECT"
+fi
+
+# Everything from here on, sbx included, runs in the workspace, so tmux (#{pane_current_path} in
+# tmux/agent.conf) names the window after the project or sealed-<flavor>, not the launch directory.
+run cd "$PROJECT"
+
 # Keeps the skills sbx mounts into every sandbox in sync with config/skills/ (see bin/install-skills).
 # A failure only warns: the sandbox still starts, just without updated skills.
 "$REPO/bin/install-skills" -q ${DRY_RUN:+-n} >&2 || echo "sbx-up: could not install skills, continuing" >&2
@@ -236,16 +259,10 @@ if command -v lockconfig >/dev/null 2>&1; then
   run lockconfig || { echo "sbx-up: lockconfig failed, not starting the sandbox" >&2; exit 1; }
 fi
 
-EXISTS=""
-if sbx ls -q 2>/dev/null | grep -qxF "$NAME"; then
-  EXISTS=1
-fi
-
-# Reuse: `sbx run --name` restarts and attaches to the existing sandbox, reading its kits and
-# workspace from the sandbox's spec. Kits are left out on purpose: passing a kit with build content
-# would make sbx create the sandbox fresh. ARGS still go along, so `claude` starts Claude Code.
-# sealed reuses only with -k; without it, a kept or left-behind sandbox is replaced below.
-if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && { [ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ]; }; then
+# Reuse reads the sandbox's kits and workspace from its spec. Kits are left out on purpose: passing
+# a kit with build content would make sbx create the sandbox fresh. ARGS still go along, so
+# `claude` starts Claude Code.
+if [ -n "$REUSE" ]; then
   if [ -n "$SEALED" ]; then
     echo "sbx-up: reusing sandbox $NAME (sbx-up -r sealed -k ... to start it fresh)" >&2
   else
@@ -269,17 +286,12 @@ CMD=(sbx run --name "$NAME")
 # sealed: --rm (sbx 0.47.0+) removes the sandbox once the agent session exits; -k leaves it out so
 # the sandbox stays for the next `sealed -k`. sbx-up still execs sbx, since tmux/agent.conf tells
 # sandbox panes apart by their foreground process being `sbx`. A sandbox left behind by an
-# interrupted run is removed above on the next sealed start, and the workspace is emptied here
-# before each fresh start.
+# interrupted run is removed above on the next sealed start, and the workspace was emptied
+# before the skills step.
 [ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ] || CMD+=(--rm)
 [ ${#KITS[@]} -eq 0 ] || CMD+=("${KITS[@]}")
 CMD+=("$REPO/shell-base" "$PROJECT")
 [ ${#ARGS[@]} -eq 0 ] || CMD+=(-- "${ARGS[@]}")
-
-if [ -n "$SEALED" ]; then
-  run rm -rf "${PROJECT:?}"
-  run mkdir -p "$PROJECT"
-fi
 
 if [ -n "$DRY_RUN" ]; then
   run "${CMD[@]}"
