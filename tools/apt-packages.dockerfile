@@ -10,3 +10,10 @@ RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
 # native binary and does not use it. Skipped when the base image has no Debian nodejs.
 RUN ! dpkg -s nodejs >/dev/null 2>&1 || \
     (sudo apt-get purge -y --auto-remove nodejs npm && sudo rm -rf /var/lib/apt/lists/*)
+
+# Removes the base image's uv (/usr/local/bin/uv, 0.9.x when this was written) so the only uv is
+# mise's, pinned in shell-base/mise.toml and locked in mise.lock. Otherwise whichever comes first
+# on PATH wins, and the old one runs wherever mise's shims aren't active. Skipped when absent.
+RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
+      [ ! -e "$f" ] || sudo rm -f "$f"; \
+    done
