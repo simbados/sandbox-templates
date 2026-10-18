@@ -12,8 +12,8 @@
 - Do not use pip, npm, or any other package manager without explicit user consent — this applies even in auto mode.
 - In Python projects, never use pip; always use uv for package and dependency management. If uv isn't installed, ask the user before installing it with mise (`mise use uv@<version>` in the project).
 - Never run `npm install`, `pip install`, or equivalent without explicit consent. If a task requires adding a new dependency, ask the user before installing it.
-- When a missing package or tool would make the job significantly easier, more reliable or faster (e.g. a parser instead of hand-rolled regexes, `jq` instead of string slicing, a converter instead of reimplementing a file format), ask the user to install it rather than working around it without asking. Name the tool, say what it saves, and wait for the answer; only fall back to a workaround if the user declines or the gain is small. The consent and scan rules above still apply.
 - Before adding or importing any new dependency, you MUST run the `scan-dependencies` skill on it and report the result. The scan comes first, before anything is installed, downloaded, locked (e.g. `mise lock`, `uv lock`) or written to a manifest or lockfile, and before asking for consent to install it. A clean scan only means no known issues; it is not a guarantee of safety. Do not proceed with a dependency the scan flags without explicit user approval.
+- When a missing package or tool would make the job significantly easier, more reliable or faster (e.g. a parser instead of hand-rolled regexes, `jq` instead of string slicing, a converter instead of reimplementing a file format), ask the user to install it rather than working around it without asking. Name the tool, say what it saves, and wait for the answer; only fall back to a workaround if the user declines or the gain is small. The consent rules and the scan above still apply.
 
 ## Network Access
 
