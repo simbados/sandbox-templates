@@ -26,6 +26,13 @@
       "recreateWhen": "always"
     },
     {
+      // uv (shell-base/mise.toml) is raised as soon as it's released, without the global
+      // minimumReleaseAge.
+      "matchManagers": ["mise"],
+      "matchDepNames": ["uv"],
+      "minimumReleaseAge": null
+    },
+    {
       // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
       // update against. Since Renovate 42 (minimumReleaseAgeBehaviour defaults to
       // "timestamp-required") such digest updates are held as "Pending Status
