@@ -10,11 +10,11 @@
 # step (.github/workflows/update-hashes.yml). See
 # https://mise.jdx.dev/security.html#minimum-release-age.
 minimum_release_age = "7d"
-# TODO: once MISE_VERSION (tools/mise.dockerfile) is >= 2026.9.17, `mise self-update` honours a
-# minimum release age too (https://github.com/jdx/mise/releases/tag/v2026.9.17): it falls back to
-# the setting above, otherwise 24h. Then add `self_update.minimum_release_age = "7d"` here to make
-# that explicit (older mise may reject the unknown key, so not before the bump). The same release
-# also fixes pnpm 12 ignoring mise's minimum_release_age for transitive dependencies.
+# Minimum age for the release `mise self-update` (and automatic updates) installs, since mise
+# 2026.9.17 (https://github.com/jdx/mise/releases/tag/v2026.9.17); without it, self-update falls
+# back to the setting above. Shorter than 7d because mise releases almost daily, matching the 3 days
+# Renovate waits before bumping MISE_VERSION (renovate.json).
+self_update.minimum_release_age = "3d"
 
 [tools]
 node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
