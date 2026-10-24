@@ -2,28 +2,19 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "7 days",
+  // .github/workflows/update-hashes.yml commits refreshed lockfiles and regenerated Dockerfiles
+  // onto Renovate's branches. Without this, Renovate counts those commits as manual edits and
+  // stops updating the branch ("PR Edited (Blocked)" on the Dependency Dashboard), so the PR
+  // stays on its first version. The workflow re-runs on every Renovate push.
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
     {
       // The mise binary (MISE_VERSION in tools/mise.dockerfile, tracked by the customManager
-      // below) releases almost daily, faster than its minimumReleaseAge, so the PR
-      // Renovate opens can get stuck on the first version that cleared the age check instead
-      // of the newest one that has (see
-      // https://github.com/renovatebot/renovate/discussions/42643). Forcing a close+recreate
-      // instead of an in-place branch update makes Renovate re-run the full minimumReleaseAge
-      // evaluation each time. Its age is 3 days instead of the global 7, so the weekly PR
-      // doesn't trail the newest release by more than a week.
-      //
-      // schedule turns this into a predictable weekly cycle instead of continuous churn:
-      // Renovate only touches it outside this window if the branch needs a rebase, never to
-      // propose a new version. Close the PR during that window if the version it landed on
-      // isn't the one you want yet - recreateWhen brings it right back, freshly re-evaluated
-      // against minimumReleaseAge, rather than leaving it closed (the default "ignore this
-      // version forever" behavior).
+      // below) releases almost daily, so it waits 3 days instead of the global 7 to not trail
+      // the newest release by too much.
       "matchManagers": ["custom.regex"],
       "matchDepNames": ["jdx/mise"],
-      "minimumReleaseAge": "3 days",
-      "schedule": ["before 4am on monday"],
-      "recreateWhen": "always"
+      "minimumReleaseAge": "3 days"
     },
     {
       // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
