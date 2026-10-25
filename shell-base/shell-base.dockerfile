@@ -76,6 +76,9 @@ RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
 # doesn't have yet). Last, so it doesn't upgrade node/npm only to purge them above. Like every
 # layer it is cached: it only re-runs when an earlier layer changes, e.g. a base image bump.
 # Noninteractive and keeping existing config files, so a changed conffile can't stall the build.
+# Change APT_UPGRADE_DATE to force a fresh upgrade: a changed ARG invalidates the cache from this
+# step on (a comment doesn't, Docker ignores comments when matching layers).
+ARG APT_UPGRADE_DATE=2026-10-25
 RUN sudo apt-get update && \
     sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
       -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \
