@@ -33,7 +33,7 @@ url = "https://github.com/modem-dev/hunk/releases/download/v0.23.0/hunkdiff-linu
 url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/601411922"
 
 [[tools.node]]
-version = "24.21.0"
+version = "24.22.1"
 backend = "core:node"
 specifiers = ["lts"]
 
