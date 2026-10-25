@@ -17,6 +17,12 @@
       "minimumReleaseAge": "3 days"
     },
     {
+      // The tools in shell-base/mise.toml (node, hunk, helix, uv), tracked by Renovate's
+      // native mise manager, wait 3 days like the mise binary instead of the global 7.
+      "matchManagers": ["mise"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
       // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
       // update against. Since Renovate 42 (minimumReleaseAgeBehaviour defaults to
       // "timestamp-required") such digest updates are held as "Pending Status
