@@ -8,10 +8,13 @@ on:
     # <template>/<template>.dockerfile itself (build artifacts regenerated below,
     # and disabled as Renovate targets in renovate.json to avoid them clobbering
     # these on regen). config/ and keys/ are copied into kit templates' shared/, so
-    # editing them also needs a regenerate.
+    # editing them also needs a regenerate. For fuzzy versions such as node = "lts",
+    # Renovate changes only the version line in */mise.lock and leaves the old
+    # release's checksums and URLs, which `mise lock` below then refreshes.
     paths:
       - "tools/**"
       - "**/mise.toml"
+      - "**/mise.lock"
       - "**/template.yaml"
       - "config/**"
       - "keys/**"
