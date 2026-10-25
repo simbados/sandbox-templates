@@ -17,3 +17,12 @@ RUN ! dpkg -s nodejs >/dev/null 2>&1 || \
 RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
       [ ! -e "$f" ] || sudo rm -f "$f"; \
     done
+
+# Upgrades the base image's packages to the current Ubuntu updates (security fixes the image
+# doesn't have yet). Last, so it doesn't upgrade node/npm only to purge them above. Like every
+# layer it is cached: it only re-runs when an earlier layer changes, e.g. a base image bump.
+# Noninteractive and keeping existing config files, so a changed conffile can't stall the build.
+RUN sudo apt-get update && \
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+      -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \
+    sudo rm -rf /var/lib/apt/lists/*
