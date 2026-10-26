@@ -24,13 +24,11 @@ specifiers = ["v0.24.0"]
 
 [tools.hunk."platforms.linux-arm64"]
 checksum = "sha256:eaaba9f5c0c184db4a8493ac386b112ee8cbb553884c4a0e5e04138def5e2d29"
-checksum_source = "mise-versions"
 url = "https://github.com/modem-dev/hunk/releases/download/v0.24.0/hunkdiff-linux-arm64.tar.gz"
 url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/656237355"
 
 [tools.hunk."platforms.linux-x64"]
 checksum = "sha256:7656402a8ebbd5117ad24e12bda1af045fc9c85c3b40e72dbfde4dea79b60c69"
-checksum_source = "mise-versions"
 url = "https://github.com/modem-dev/hunk/releases/download/v0.24.0/hunkdiff-linux-x64.tar.gz"
 url_api = "https://api.github.com/repos/modem-dev/hunk/releases/assets/656237340"
 
