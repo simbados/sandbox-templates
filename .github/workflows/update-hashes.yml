@@ -44,7 +44,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Install mise
-        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           # Gates which mise *binary* release this step installs - separate from, and unrelated
           # to, the minimum_release_age set in shell-base/mise.toml, which
