@@ -23,8 +23,8 @@ COPY --chown=agent:agent keys/mise-release.asc /tmp/mise-release.asc
 RUN set -eu; \
     MISE_VERSION=2026.10.18; \
     case "$(uname -m)" in \
-        x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=fe6dd17e68e09682b31d2e7bb7bb755d22636ac1af5d94621e300f2ca9e9fe8a ;; \
-        aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=e90904144ba4377c5fbe385f429830282c68f3b4f9c690bf6c5a2ae9b74a809b ;; \
+        x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=e97c38973336aa2ff350fea50f47b412b266fe263b102b7200ff1e9b118c6942 ;; \
+        aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=3a3c72376687ba21a588d0f5a2c88c76f483fb6cdece7b0fc43d5e3132b08a52 ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     MISE_ASSET="mise-v${MISE_VERSION}-${MISE_PLATFORM}"; \
