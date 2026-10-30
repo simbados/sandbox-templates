@@ -20,7 +20,7 @@ self_update.minimum_release_age = "3d"
 node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
 hunk = "v0.24.0"   # terminal diff viewer (aqua:modem-dev/hunk)
 helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
-uv = "0.13.5"      # Python package and project manager (aqua:astral-sh/uv); replaces the base image's /usr/local/bin/uv
+uv = "0.13.6"      # Python package and project manager (aqua:astral-sh/uv); replaces the base image's /usr/local/bin/uv
 
 # fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
 # here too - add a line like `zoxide = "0.10.0"` to re-enable one (see archive/tools/ for why each
