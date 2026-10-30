@@ -21,7 +21,7 @@
 COPY --chown=agent:agent keys/mise-release.asc /tmp/mise-release.asc
 
 RUN set -eu; \
-    MISE_VERSION=2026.10.18; \
+    MISE_VERSION=2026.10.21; \
     case "$(uname -m)" in \
         x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=e97c38973336aa2ff350fea50f47b412b266fe263b102b7200ff1e9b118c6942 ;; \
         aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=3a3c72376687ba21a588d0f5a2c88c76f483fb6cdece7b0fc43d5e3132b08a52 ;; \
