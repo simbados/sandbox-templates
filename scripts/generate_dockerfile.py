@@ -27,6 +27,7 @@ generated too - edit the originals and re-run this script. Symlinks are no
 alternative: neither BuildKit nor sbx follows ones that point outside the
 context.
 """
+from __future__ import annotations
 import re
 import shutil
 import sys

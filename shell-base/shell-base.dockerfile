@@ -52,6 +52,18 @@ RUN cat <<'EOF' > ~/.config/uv/uv.toml
 exclude-newer = "7 days"
 EOF
 
+ARG APT_BUMP_DATE=2026-11-05
+RUN echo 'Acquire::Retries "0";' | sudo tee /etc/apt/apt.conf.d/99-no-retries && \
+    dpkg -s ca-certificates >/dev/null && \
+    sudo sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources && \
+    grep -h '^URIs' /etc/apt/sources.list.d/ubuntu.sources && \
+    apt-config dump | grep Acquire::Retries && \
+    apt --version && \
+    sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends --only-upgrade apt && \
+    apt --version && \
+    sudo rm -rf /var/lib/apt/lists/*
+
 RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
     command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
     (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
@@ -78,7 +90,7 @@ RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
 # Noninteractive and keeping existing config files, so a changed conffile can't stall the build.
 # Change APT_UPGRADE_DATE to force a fresh upgrade: a changed ARG invalidates the cache from this
 # step on (a comment doesn't, Docker ignores comments when matching layers).
-ARG APT_UPGRADE_DATE=2026-10-25
+ARG APT_UPGRADE_DATE=2026-11-05
 RUN sudo apt-get update && \
     sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
       -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \
