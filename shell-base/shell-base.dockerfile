@@ -117,10 +117,10 @@ RUN sudo apt-get update && \
 COPY --chown=agent:agent shared/mise-release.asc /tmp/mise-release.asc
 
 RUN set -eu; \
-    MISE_VERSION=2026.10.18; \
+    MISE_VERSION=2026.11.0; \
     case "$(uname -m)" in \
-        x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=e97c38973336aa2ff350fea50f47b412b266fe263b102b7200ff1e9b118c6942 ;; \
-        aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=3a3c72376687ba21a588d0f5a2c88c76f483fb6cdece7b0fc43d5e3132b08a52 ;; \
+        x86_64) MISE_PLATFORM=linux-x64; MISE_SHA256=71eb4f1b66b8bd69eb44cedcf0b22205859ea1ae2b2f557e48b35656079a94a9 ;; \
+        aarch64) MISE_PLATFORM=linux-arm64; MISE_SHA256=dbe0b2141ba1d67cbfdd661cc8e6771cfda73d9f9998256d8e5ecdabfed66c07 ;; \
         *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     MISE_ASSET="mise-v${MISE_VERSION}-${MISE_PLATFORM}"; \
