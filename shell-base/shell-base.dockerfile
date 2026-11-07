@@ -184,6 +184,13 @@ COPY --chown=agent:agent shared/CLAUDE.md shared/AGENTS.md /home/agent/.claude/
 RUN mkdir -p ~/.claude/skills/scan-dependencies
 COPY --chown=agent:agent shared/SKILL.md /home/agent/.claude/skills/scan-dependencies/SKILL.md
 
+# Claude Code's classic renderer instead of its fullscreen one, which became the default when the
+# `tui` setting is unset. Fullscreen captures the mouse, so drags no longer reach tmux copy mode
+# on the host, and its own copy (OSC 52) does not arrive through sbx and tmux: copy-paste breaks.
+# Same as `"tui": "default"` in settings.json, which claude-mixin seeds; the variable beats the
+# setting, so `/tui fullscreen` only lasts with CLAUDE_CODE_NO_FLICKER=1 set for that session.
+ENV CLAUDE_CODE_NO_FLICKER=0
+
 # Creates OpenCode's config directory agent-owned for `sbx-up opencode`. sbx mounts the shared
 # skills at ~/.config/opencode/skills (opencode-mixin's agent-skills@1); without this the mount
 # creates ~/.config/opencode root-owned, and the mixin's startup step, which writes
