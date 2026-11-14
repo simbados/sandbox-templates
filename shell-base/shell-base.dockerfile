@@ -108,7 +108,8 @@ RUN sudo apt-get update && \
 #
 # Each release's SHASUMS256.asc is a GPG clearsigned checksum manifest (not a detached signature
 # over a separate file), so `gpg --verify` on it alone is both correct and sufficient - the
-# checksum lines can then be read straight back out of that same now-verified file. See
+# checksum lines are read from `gpg --decrypt`'s output, which holds only the signed body, so text
+# outside the clearsigned block can't inject a hash (same as .github/workflows/update-hashes.yml). See
 # https://mise.jdx.dev/installing-mise.html#github-releases. A hardcoded MISE_SHA256 pin below is
 # checked in addition to the live GPG verification (same belt-and-suspenders as temurin.dockerfile),
 # so a build always gets the exact same reviewed bytes rather than "whatever is currently signed".
@@ -128,10 +129,10 @@ RUN set -eu; \
     curl -fsSL -o /tmp/SHASUMS256.asc "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/SHASUMS256.asc"; \
     export GNUPGHOME="$(mktemp -d)"; \
     gpg --batch --import /tmp/mise-release.asc; \
-    gpg --batch --verify /tmp/SHASUMS256.asc; \
-    rm -rf "$GNUPGHOME" /tmp/mise-release.asc; \
-    LIVE_SHA256="$(grep " \./${MISE_ASSET}\$" /tmp/SHASUMS256.asc | awk '{print $1}')"; \
-    rm /tmp/SHASUMS256.asc; \
+    gpg --batch --yes --output /tmp/SHASUMS256.txt --decrypt /tmp/SHASUMS256.asc; \
+    rm -rf "$GNUPGHOME" /tmp/mise-release.asc /tmp/SHASUMS256.asc; \
+    LIVE_SHA256="$(awk -v f="./${MISE_ASSET}" '$2 == f {print $1}' /tmp/SHASUMS256.txt)"; \
+    rm /tmp/SHASUMS256.txt; \
     if [ "$LIVE_SHA256" != "$MISE_SHA256" ]; then \
         echo "mise ${MISE_VERSION} ${MISE_PLATFORM}: GPG-verified checksum ${LIVE_SHA256} does not match pinned ${MISE_SHA256}" >&2; \
         exit 1; \
