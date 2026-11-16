@@ -1,7 +1,6 @@
 # Tool versions for the shell-base/ image, installed by tools/shell-base-mise-tools.dockerfile.
 # Renovate's native `mise` manager (https://docs.renovatebot.com/modules/manager/mise/) tracks
-# the versions below directly - no custom regex managers needed, unlike the old
-# tools/*.dockerfile fragments this replaced (see archive/tools/).
+# the versions below directly - no custom regex managers needed.
 
 [settings]
 # The built image installs this file as mise's global config (~/.config/mise/config.toml, see
@@ -17,11 +16,7 @@ minimum_release_age = "7d"
 self_update.minimum_release_age = "3d"
 
 [tools]
-node = "lts"      # matches the old `fnm install --lts` behavior (see archive/tools/fnm.dockerfile)
+node = "lts"
 hunk = "v0.24.1"   # terminal diff viewer (aqua:modem-dev/hunk)
 helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
 uv = "0.13.7"      # Python package and project manager (aqua:astral-sh/uv); replaces the base image's /usr/local/bin/uv
-
-# fzf/zoxide/temurin stayed commented-out in template.yaml before this migration and are excluded
-# here too - add a line like `zoxide = "0.10.0"` to re-enable one (see archive/tools/ for why each
-# was disabled and which mise backend replaces it).

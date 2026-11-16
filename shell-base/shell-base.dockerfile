@@ -94,11 +94,9 @@ RUN sudo apt-get update && \
       -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \
     sudo rm -rf /var/lib/apt/lists/*
 
-# mise (https://mise.jdx.dev) replaces fnm/fzf/zoxide/temurin/uv/pnpm's separate hand-rolled
-# curl+sha256 installs (see archive/tools/) with one tool version manager, configured per image
-# via <template>/mise.toml (see tools/shell-base-mise-tools.dockerfile). Installed here from
-# GitHub Releases and GPG-verified against mise's release-signing key - deliberately not `curl | sh` - matching this repo's
-# existing curl-then-verify-then-extract convention (closest precedent: temurin.dockerfile).
+# mise (https://mise.jdx.dev) installs the image's tools, configured via shell-base/mise.toml (see
+# tools/shell-base-mise-tools.dockerfile). mise itself comes from GitHub Releases, GPG-verified
+# against mise's release-signing key - deliberately not `curl | sh`.
 #
 # keys/mise-release.asc fingerprint 24853EC9F655CE80B48E6C3A8B81C9D17413A06D - confirmed against
 # two independent sources: https://mise.jdx.dev/installing-mise.html quotes this exact fingerprint
@@ -111,7 +109,7 @@ RUN sudo apt-get update && \
 # checksum lines are read from `gpg --decrypt`'s output, which holds only the signed body, so text
 # outside the clearsigned block can't inject a hash (same as .github/workflows/update-hashes.yml). See
 # https://mise.jdx.dev/installing-mise.html#github-releases. A hardcoded MISE_SHA256 pin below is
-# checked in addition to the live GPG verification (same belt-and-suspenders as temurin.dockerfile),
+# checked in addition to the live GPG verification,
 # so a build always gets the exact same reviewed bytes rather than "whatever is currently signed".
 #
 # Requires gnupg (from apt-packages.dockerfile).
@@ -143,10 +141,8 @@ RUN set -eu; \
     rm /tmp/mise
 
 # mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
-# fish, and non-interactive invocations alike. Unlike fnm (which needs a per-shell
-# `eval "$(fnm env ...)"` hook in ~/.bashrc, fish's conf.d, AND /etc/sandbox-persistent.sh - see
-# archive/tools/fnm.dockerfile), mise's shims are static files that just need to be found on
-# PATH, so this one ENV line replaces all three of those integration points. See
+# fish, and non-interactive invocations alike. The shims are static files, so this one ENV line
+# needs no per-shell activation hook. See
 # https://mise.jdx.dev/dev-tools/shims.html.
 ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
 

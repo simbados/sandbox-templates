@@ -54,8 +54,8 @@ jobs:
 
       - name: Refresh mise lockfiles
         # Re-resolves checksums/URLs for the currently-configured (exact-pinned) versions in each
-        # image's mise.toml, e.g. after Renovate's native `mise` manager bumps a version there -
-        # the direct successor to archive/scripts/update_hashes.py's job. Not --bump: our tools
+        # image's mise.toml, e.g. after Renovate's native `mise` manager bumps a version there.
+        # Not --bump: our tools
         # are pinned to exact versions, not fuzzy specs, so we only want fresh checksums for
         # whatever's already configured, not to re-resolve to a newer version here.
         run: |
