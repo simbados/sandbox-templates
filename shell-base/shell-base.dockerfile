@@ -1,7 +1,6 @@
 # GENERATED FILE - do not edit directly.
 #
-# Edit the fragments in tools/ (and this template's template.yaml / prelude
-# fragment), then regenerate with:
+# Edit the fragments in tools/ (and this kit's template.yaml), then regenerate with:
 #   python3 scripts/generate_dockerfile.py shell-base
 
 FROM docker/sandbox-templates:shell-docker@sha256:b178ca62ec2e79af2a044e3ec321bdb72188690e1c15d573ea5524b397554d3d
