@@ -1,2 +1,3 @@
 tmux/**
-.DS_STORE
+.DS_Store
+.claude/settings.local.json
