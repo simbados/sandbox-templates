@@ -6,8 +6,7 @@
 #
 #   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens fish
 #   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
-#   sbx-up [-n] [-r] opencode [PATH] [-- ARGS...] ... + Docker's opencode-mixin, starts OpenCode
-#   sbx-up [-n] [-r] sealed [-k] [-c NAME] shell|claude|opencode [-- ARGS...]
+#   sbx-up [-n] [-r] sealed [-k] [-c NAME] shell|claude [-- ARGS...]
 #                                            throwaway sandbox sealed-<flavor>, or
 #                                            sealed-<flavor>-NAME with -c: an empty workspace, no
 #                                            project mixins; sbx removes the sandbox when the
@@ -19,23 +18,23 @@
 #   ARGS   appended to the workload's launch command (`bash -l`); they replace the defaults
 #          `-lc 'exec fish -l'` for shell, `-lc 'claude --permission-mode auto'` for claude
 #          (claude-mixin seeds settings.json with defaultMode bypassPermissions; the flag starts the
-#          session in auto mode instead) and OpenCode's binary for opencode (see below). `sbx-up shell -- -l` opens bash instead of fish.
+#          session in auto mode instead). `sbx-up shell -- -l` opens bash instead of fish.
 #   -n     print the commands instead of running them
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #          (for sealed only matters with -k; without it sealed always starts fresh)
 #   -c     sealed only: name the sandbox, so several sealed sandboxes of one flavor can run at once
 #          (`sbx-up sealed -c test claude` => sealed-claude-test, workspace ~/.cache/sbx-up/sealed-claude-test)
 #   -k     sealed only: keep the sandbox and its workspace when the session ends; the next
-#          `sbx-up sealed -k` with the same flavor and name reattaches to it like shell|claude|opencode
+#          `sbx-up sealed -k` with the same flavor and name reattaches to it like shell|claude
 #          do. A later sealed start without -k still removes it and empties the workspace.
 #
 # Before starting, every run copies config/skills/ into the skills folder sbx mounts into all
 # sandboxes (bin/install-skills; only changed skills are copied). Then, if the host has a
 # `lockconfig` command on PATH, it runs that; sbx-up stops if lockconfig fails.
 #
-# shell, claude and opencode reuse an existing sandbox of the same name (`sbx run --name`, which restarts
-# it if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
-# with, so after changes to shell-base, <flavor>-mixin.ref or .sbx-kits/ run with -r: that removes
+# shell and claude reuse an existing sandbox of the same name (`sbx run --name`, which restarts it
+# if stopped) and only create one when none exists. sbx keeps the kits a sandbox was created
+# with, so after changes to shell-base, claude-mixin.ref or .sbx-kits/ run with -r: that removes
 # the sandbox first, and anything installed by hand inside it is gone (put it in .sbx-kits/).
 # sealed always creates a fresh sandbox, except with -k, which reuses a kept one.
 #
@@ -141,7 +140,7 @@ SEALED=""
 SEALED_NAME=""
 SEALED_KEEP=""
 case "${1:-}" in
-  shell|claude|opencode)
+  shell|claude)
     FLAVOR="$1"
     shift
     ;;
@@ -161,7 +160,7 @@ case "${1:-}" in
       esac
     done
     FLAVOR="${1:-}"
-    case "$FLAVOR" in shell|claude|opencode) shift ;; *) usage ;; esac
+    case "$FLAVOR" in shell|claude) shift ;; *) usage ;; esac
     ;;
   kit)
     shift
@@ -199,19 +198,11 @@ if [ "$FLAVOR" = shell ]; then
   # bash -l first, so the login profile runs as before, then fish replaces it.
   [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'exec fish -l')
 else
-  # Each agent flavor adds Docker's mixin pinned in <flavor>-mixin.ref (claude-mixin.ref, ...).
-  MIXIN_REF="$(grep -v '^[[:space:]]*\(#\|$\)' "$REPO/$FLAVOR-mixin.ref" | head -n 1)"
-  [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/$FLAVOR-mixin.ref" >&2; exit 1; }
+  # claude adds Docker's claude-mixin, pinned in claude-mixin.ref.
+  MIXIN_REF="$(grep -v '^[[:space:]]*\(#\|$\)' "$REPO/claude-mixin.ref" | head -n 1)"
+  [ -n "$MIXIN_REF" ] || { echo "sbx-up: no reference in $REPO/claude-mixin.ref" >&2; exit 1; }
   KITS+=(--kit "$MIXIN_REF")
-  if [ ${#ARGS[@]} -eq 0 ]; then
-    case "$FLAVOR" in
-      claude) ARGS=(-lc 'claude --permission-mode auto') ;;
-      # opencode-mixin's /usr/local/bin/opencode runs `node .../opencode-ai/bin/opencode`, but the
-      # package installs only the native Linux binary there, named opencode.exe, so start that
-      # directly. Back to plain `opencode` once Docker fixes the launcher.
-      opencode) ARGS=(-lc 'exec /opt/opencode/lib/node_modules/opencode-ai/bin/opencode.exe') ;;
-    esac
-  fi
+  [ ${#ARGS[@]} -gt 0 ] || ARGS=(-lc 'claude --permission-mode auto')
 fi
 
 if [ -z "$SEALED" ] && [ -d "$PROJECT/.sbx-kits" ]; then
