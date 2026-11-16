@@ -26,14 +26,12 @@ ENV NPM_CONFIG_MIN_RELEASE_AGE=7 \
 # The same presets as a file, for tools that read ~/.npmrc instead of npm's environment.
 RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
     cat <<'EOF' >> ~/.npmrc
-# --- managed by config/setup.sh ---
 min-release-age=7
 ignore-scripts=true
 update-notifier=false
 allow-directory=root
 allow-file=root
 allow-remote=root
-# --- end config/setup.sh ---
 EOF
 
 RUN cat <<'EOF' > ~/.config/pnpm/config.yaml
@@ -174,12 +172,6 @@ RUN mise install --locked
 # CLAUDE.md), which is why both files must land in the same directory.
 RUN mkdir -p ~/.claude
 COPY --chown=agent:agent shared/CLAUDE.md shared/AGENTS.md /home/agent/.claude/
-
-# Ships the scan-dependencies skill as a user-level skill (~/.claude/skills/), so it is available
-# in every project. config/AGENTS.md makes it mandatory before any dependency is added. Kit mode
-# flattens COPY sources into shared/ by file name, so skill files must have unique names there.
-RUN mkdir -p ~/.claude/skills/scan-dependencies
-COPY --chown=agent:agent shared/SKILL.md /home/agent/.claude/skills/scan-dependencies/SKILL.md
 
 # Claude Code's classic renderer instead of its fullscreen one, which became the default when the
 # `tui` setting is unset. Fullscreen captures the mouse, so drags no longer reach tmux copy mode

@@ -5,12 +5,6 @@
 RUN mkdir -p ~/.claude
 COPY --chown=agent:agent config/CLAUDE.md config/AGENTS.md /home/agent/.claude/
 
-# Ships the scan-dependencies skill as a user-level skill (~/.claude/skills/), so it is available
-# in every project. config/AGENTS.md makes it mandatory before any dependency is added. Kit mode
-# flattens COPY sources into shared/ by file name, so skill files must have unique names there.
-RUN mkdir -p ~/.claude/skills/scan-dependencies
-COPY --chown=agent:agent config/skills/scan-dependencies/SKILL.md /home/agent/.claude/skills/scan-dependencies/SKILL.md
-
 # Claude Code's classic renderer instead of its fullscreen one, which became the default when the
 # `tui` setting is unset. Fullscreen captures the mouse, so drags no longer reach tmux copy mode
 # on the host, and its own copy (OSC 52) does not arrive through sbx and tmux: copy-paste breaks.

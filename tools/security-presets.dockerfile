@@ -18,14 +18,12 @@ ENV NPM_CONFIG_MIN_RELEASE_AGE=7 \
 # The same presets as a file, for tools that read ~/.npmrc instead of npm's environment.
 RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
     cat <<'EOF' >> ~/.npmrc
-# --- managed by config/setup.sh ---
 min-release-age=7
 ignore-scripts=true
 update-notifier=false
 allow-directory=root
 allow-file=root
 allow-remote=root
-# --- end config/setup.sh ---
 EOF
 
 RUN cat <<'EOF' > ~/.config/pnpm/config.yaml
