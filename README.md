@@ -115,4 +115,12 @@ because a kit can only use files inside its own directory) are generated from
 `shell-base/template.yaml` and `tools/*.dockerfile`. After editing any of those, or `config/`,
 run `python3 scripts/generate_dockerfile.py`.
 
-Background and open points: `docs/kits-v3-migration.md`.
+## Known limits
+
+- sbx stores the resolved kit in a 4 KiB container label, so a kit with a long allow list fails
+  ([sbx-releases#645](https://github.com/docker/sbx-releases/issues/645)). Keep the allow list in
+  `shell-base/shell-base.yaml` short and put project hosts in the project's mixin.
+- v3 kits can't be combined with v1/v2 kits in one sandbox. Built-in agents like `claude` are
+  still v2, which is why Claude Code comes from Docker's v3 `claude-mixin` instead.
+- Every component of a kit set (`kind: set`) must be a published registry reference, so local
+  kits like these can't be bundled into one.
