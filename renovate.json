@@ -2,12 +2,24 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "7 days",
+  // One PR a week: every update that has passed its minimumReleaseAge by Monday morning (UTC) is
+  // grouped into a single branch, majors included. The lockfile and pins stay, so the hash
+  // workflow refreshes them on that one PR as before. Outside the window Renovate still keeps an
+  // open PR up to date, but opens no new one.
+  "schedule": ["before 6am on monday"],
+  "separateMajorMinor": false,
   // .github/workflows/update-hashes.yml commits refreshed lockfiles and regenerated Dockerfiles
   // onto Renovate's branches. Without this, Renovate counts those commits as manual edits and
   // stops updating the branch ("PR Edited (Blocked)" on the Dependency Dashboard), so the PR
   // stays on its first version. The workflow re-runs on every Renovate push.
   "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
+    {
+      // Everything in one weekly PR (see schedule above).
+      "matchPackageNames": ["*"],
+      "groupName": "weekly updates",
+      "groupSlug": "weekly"
+    },
     {
       // The mise binary (MISE_VERSION in tools/mise.dockerfile, tracked by the customManager
       // below) releases almost daily, so it waits 3 days instead of the global 7 to not trail
