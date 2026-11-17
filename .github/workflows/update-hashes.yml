@@ -11,13 +11,8 @@ on:
     # editing them also needs a regenerate. For fuzzy versions such as node = "lts",
     # Renovate changes only the version line in */mise.lock and leaves the old
     # release's checksums and URLs, which `mise lock` below then refreshes.
-    paths:
-      - "tools/**"
-      - "**/mise.toml"
-      - "**/mise.lock"
-      - "**/template.yaml"
-      - "config/**"
-      - "keys/**"
+    # No paths filter: Renovate automerges only once every check on the PR has passed, so each
+    # Renovate PR must get this check, even one that only bumps an action pin (a no-op run here).
   workflow_dispatch: {}
 
 permissions:
@@ -37,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # commit_via_api.sh marks its own commit as passed (see there)
+      statuses: write
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

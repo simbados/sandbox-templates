@@ -38,3 +38,9 @@ new_commit_sha=$(jq -n --arg message "$COMMIT_MESSAGE" --arg tree "$new_tree_sha
 
 echo "Fast-forwarding $BRANCH to $new_commit_sha ..."
 gh api "repos/$REPO/git/refs/heads/$BRANCH" -X PATCH -f sha="$new_commit_sha" -F force=false
+
+# A push made with GITHUB_TOKEN starts no workflow, so the commit above would carry no checks and
+# Renovate (which automerges only when every check on the branch head has passed) would wait
+# forever. This run produced the commit after its own checks, so mark it as passed.
+gh api "repos/$REPO/statuses/$new_commit_sha" -f state=success -f context=update-hashes \
+  -f description="pinned hashes refreshed by this workflow" > /dev/null

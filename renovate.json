@@ -8,6 +8,12 @@
   // open PR up to date, but opens no new one.
   "schedule": ["before 6am on monday"],
   "separateMajorMinor": false,
+  // Renovate merges the weekly PR itself once every check on it has passed, i.e. after
+  // update-hashes.yml has refreshed and committed the pins (it marks that commit as passed). Not
+  // GitHub's native auto-merge: without a required check in branch protection, that could merge
+  // before the workflow has committed the refreshed hashes.
+  "automerge": true,
+  "platformAutomerge": false,
   // .github/workflows/update-hashes.yml commits refreshed lockfiles and regenerated Dockerfiles
   // onto Renovate's branches. Without this, Renovate counts those commits as manual edits and
   // stops updating the branch ("PR Edited (Blocked)" on the Dependency Dashboard), so the PR
