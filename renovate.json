@@ -1,10 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
-  // Off until the loop between Renovate and update-hashes.yml is fixed: the workflow commits the
-  // new mise checksums into tools/mise.dockerfile, which Renovate also writes, so Renovate kept
-  // recreating renovate/weekly (PR #49). Remove this line to turn Renovate back on.
-  "enabled": false,
   "minimumReleaseAge": "7 days",
   // One PR a week: every update that has passed its minimumReleaseAge by Monday morning (UTC) is
   // grouped into a single branch, majors included. The lockfile and pins stay, so the hash
@@ -43,6 +39,16 @@
       // native mise manager, wait 3 days like the mise binary instead of the global 7.
       "matchManagers": ["mise"],
       "minimumReleaseAge": "3 days"
+    },
+    {
+      // node is pinned to an exact version like the other tools. With node = "lts" its updates
+      // touched only mise.lock, and Renovate rebuilds a branch from main on every run when it
+      // mixes such a lockfile-only update with version bumps from the same file. That discarded
+      // update-hashes.yml's commit each time, in a loop (PR #49). Even majors only, so the pin
+      // stays on LTS lines (24, 26, ...) and skips the odd, short-lived releases.
+      "matchManagers": ["mise"],
+      "matchDepNames": ["node"],
+      "allowedVersions": "/^v?\\d*[02468]\\./"
     },
     {
       // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
