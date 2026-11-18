@@ -28,7 +28,9 @@ jobs:
     # dispatch (already gated by GitHub's own write-access requirement for that
     # trigger). Prevents an arbitrary fork PR from getting this job to fetch
     # attacker-influenced URLs or push commits.
-    if: github.event.pull_request.user.login == 'renovate[bot]'
+    # A manual dispatch is a drift check: it refreshes the pins and fails if they or the
+    # generated files differ from what is checked in, but commits nothing.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login == 'renovate[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
