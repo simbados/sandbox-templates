@@ -1,6 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  // Off until the loop between Renovate and update-hashes.yml is fixed: the workflow commits the
+  // new mise checksums into tools/mise.dockerfile, which Renovate also writes, so Renovate kept
+  // recreating renovate/weekly (PR #49). Remove this line to turn Renovate back on.
+  "enabled": false,
   "minimumReleaseAge": "7 days",
   // One PR a week: every update that has passed its minimumReleaseAge by Monday morning (UTC) is
   // grouped into a single branch, majors included. The lockfile and pins stay, so the hash
