@@ -62,7 +62,7 @@ project rebuilds its sandbox from them (sbx reuses its build cache when nothing 
 From a project directory, on the host:
 
 ```bash
-sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens fish
+sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens bash
 sbx-up claude         # ... + claude-mixin, starts Claude Code in auto mode
 sbx-up -r claude      # rebuild: remove the sandbox and create it from the current kits
 sbx-up -n claude      # print the sbx commands instead of running them

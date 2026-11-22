@@ -6,6 +6,6 @@ RUN mkdir -p ~/.config/helix
 COPY --chown=agent:agent config/helix/config.toml /home/agent/.config/helix/config.toml
 
 # Make helix (installed via mise, see shell-base/mise.toml) the default editor for git, sudoedit
-# etc. A Docker ENV rather than an `export` in ~/.bashrc or fish's conf.d, so it reaches every
-# shell - interactive bash, fish and non-interactive invocations alike - like mise's PATH does.
+# etc. A Docker ENV rather than an `export` in ~/.bashrc, so it reaches every
+# shell - interactive and non-interactive bash alike - like mise's PATH does.
 ENV EDITOR=hx VISUAL=hx

@@ -11,10 +11,9 @@ RUN echo 'Acquire::Retries "0";' | sudo tee /etc/apt/apt.conf.d/99-no-retries &&
     apt-config dump | grep Acquire::Retries
 
 # libatomic1 is a runtime library mise's node binaries need ("libatomic.so.1: cannot open shared
-# object file") that the minimal base image leaves out. fish comes from mise instead of apt:
-# Debian's fish package depends on Debian's python3, which replaces the base image's Python 3.14.
-# The base image ships vim only as /usr/bin/vim.basic: its packages are installed without running
-# their setup scripts, so the usual vim/vi links are missing.
+# object file") that the minimal base image leaves out. The base image ships vim only as
+# /usr/bin/vim.basic: its packages are installed without running their setup scripts, so the usual
+# vim/vi links are missing.
 RUN sudo apt-get update && \
     sudo apt-get install -y --no-install-recommends libatomic1 && \
     sudo rm -rf /var/lib/apt/lists/* && \

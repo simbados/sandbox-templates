@@ -60,10 +60,9 @@ RUN echo 'Acquire::Retries "0";' | sudo tee /etc/apt/apt.conf.d/99-no-retries &&
     apt-config dump | grep Acquire::Retries
 
 # libatomic1 is a runtime library mise's node binaries need ("libatomic.so.1: cannot open shared
-# object file") that the minimal base image leaves out. fish comes from mise instead of apt:
-# Debian's fish package depends on Debian's python3, which replaces the base image's Python 3.14.
-# The base image ships vim only as /usr/bin/vim.basic: its packages are installed without running
-# their setup scripts, so the usual vim/vi links are missing.
+# object file") that the minimal base image leaves out. The base image ships vim only as
+# /usr/bin/vim.basic: its packages are installed without running their setup scripts, so the usual
+# vim/vi links are missing.
 RUN sudo apt-get update && \
     sudo apt-get install -y --no-install-recommends libatomic1 && \
     sudo rm -rf /var/lib/apt/lists/* && \
@@ -128,8 +127,8 @@ RUN set -eu; \
     install -m 755 /tmp/mise ~/.local/bin/mise; \
     rm /tmp/mise
 
-# mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
-# fish, and non-interactive invocations alike. The shims are static files, so this one ENV line
+# mise's shim directory just needs to be on PATH for every shell - interactive and
+# non-interactive bash alike. The shims are static files, so this one ENV line
 # needs no per-shell activation hook. See
 # https://mise.jdx.dev/dev-tools/shims.html.
 ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
@@ -178,8 +177,8 @@ RUN mkdir -p ~/.config/helix
 COPY --chown=agent:agent shared/config.toml /home/agent/.config/helix/config.toml
 
 # Make helix (installed via mise, see shell-base/mise.toml) the default editor for git, sudoedit
-# etc. A Docker ENV rather than an `export` in ~/.bashrc or fish's conf.d, so it reaches every
-# shell - interactive bash, fish and non-interactive invocations alike - like mise's PATH does.
+# etc. A Docker ENV rather than an `export` in ~/.bashrc, so it reaches every
+# shell - interactive and non-interactive bash alike - like mise's PATH does.
 ENV EDITOR=hx VISUAL=hx
 
 # Ships a default git config (identity, unsigned commits, aliases) as the user-level config. It goes
@@ -206,7 +205,7 @@ COPY --chown=agent:agent shared/agent-notify.ts /home/agent/.config/hunk/extensi
 # Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx launches the
 # workload with the image's ENTRYPOINT plus any arguments after `--`. sbx/shell's own entrypoint
 # is `bash -c 'exec "$@"' bash`, which expects a whole command, but sbx-up passes bash options
-# (`-lc 'exec fish -l'`, `-lc 'claude ...'`). So use a plain bash entrypoint, like Docker's
+# (`-l`, `-lc 'claude ...'`). So use a plain bash entrypoint, like Docker's
 # example shell kit (sandbox-kit-spec examples/shell): no arguments give a login shell, and
 # sbx-up's arguments run inside one. Setting ENTRYPOINT clears the inherited CMD, hence both lines.
 ENTRYPOINT ["bash"]

@@ -4,7 +4,7 @@ Copy `.sbx-kits/` into a project, edit `.sbx-kits/project/project.yaml`, then ru
 directory:
 
 ```bash
-sbx-up shell     # shell-base + this project's mixins, opens fish
+sbx-up shell     # shell-base + this project's mixins, opens bash
 sbx-up claude    # ... + Docker's claude-mixin, starts Claude Code
 ```
 

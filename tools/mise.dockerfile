@@ -44,8 +44,8 @@ RUN set -eu; \
     install -m 755 /tmp/mise ~/.local/bin/mise; \
     rm /tmp/mise
 
-# mise's shim directory just needs to be on PATH for every shell - interactive bash, interactive
-# fish, and non-interactive invocations alike. The shims are static files, so this one ENV line
+# mise's shim directory just needs to be on PATH for every shell - interactive and
+# non-interactive bash alike. The shims are static files, so this one ENV line
 # needs no per-shell activation hook. See
 # https://mise.jdx.dev/dev-tools/shims.html.
 ENV PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"
