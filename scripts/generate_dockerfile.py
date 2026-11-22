@@ -13,8 +13,7 @@ tool's install logic, edit its fragment in tools/, then re-run this script.
 COPY lines are rewritten to fit it: sources inside the kit directory become
 relative to it, and sources elsewhere in the repo (config/, keys/) are copied
 into <kit>/shared/ and referenced from there. Those copies are generated too -
-edit the originals and re-run this script. A directory source is copied whole, as
-<kit>/shared/<dirname>/, so the files inside it keep their own names. Symlinks are no alternative:
+edit the originals and re-run this script. Symlinks are no alternative:
 neither BuildKit nor sbx follows ones that point outside the context.
 
 No YAML library dependency: template.yaml only needs `base_image: ...` plus
@@ -58,8 +57,8 @@ def rewrite_copy(line: str, kit_dir: Path, shared: dict[str, Path]) -> str:
       => COPY shared/gitconfig /home/agent/.config/git/config
       COPY shell-base/mise.toml /home/agent/.config/mise/config.toml
       => COPY mise.toml /home/agent/.config/mise/config.toml
-      COPY config/skills /usr/share/shell-base/skills
-      => COPY shared/skills /usr/share/shell-base/skills
+      COPY shell-base/skills /usr/share/shell-base/skills
+      => COPY skills /usr/share/shell-base/skills
     """
     match = COPY_RE.match(line)
     if not match:
@@ -72,8 +71,12 @@ def rewrite_copy(line: str, kit_dir: Path, shared: dict[str, Path]) -> str:
     rewritten = []
     for source in sources:
         path = (REPO_ROOT / source).resolve()
-        if not (path.is_file() or path.is_dir()):
-            raise ValueError(f"COPY source {source!r} is not a file or directory in the repo: {line!r}")
+        # Directories only from inside the kit: shared/ holds single files, flattened by name.
+        if path.is_dir() and path.is_relative_to(kit_root):
+            rewritten.append(str(path.relative_to(kit_root)))
+            continue
+        if not path.is_file():
+            raise ValueError(f"COPY source {source!r} is not a file in the repo: {line!r}")
         if path.is_relative_to(kit_root):
             rewritten.append(str(path.relative_to(kit_root)))
             continue
@@ -98,16 +101,7 @@ def sync_shared(kit_dir: Path, shared: dict[str, Path]) -> None:
         if entry.name not in shared:
             shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
     for name, source in shared.items():
-        target = shared_dir / name
-        if source.is_dir():
-            # Replace the whole tree, so files deleted from the source disappear here too.
-            if target.exists():
-                shutil.rmtree(target) if target.is_dir() else target.unlink()
-            shutil.copytree(source, target)
-        else:
-            if target.is_dir():
-                shutil.rmtree(target)
-            shutil.copyfile(source, target)
+        shutil.copyfile(source, shared_dir / name)
 
 
 def parse_template_yaml(path: Path) -> dict:

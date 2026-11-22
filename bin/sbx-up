@@ -29,7 +29,7 @@
 #          do. A later sealed start without -k still removes it and empties the workspace.
 #
 # Before starting, if the host has a `lockconfig` command on PATH, sbx-up runs it and stops if it
-# fails. The agent skills in config/skills/ ship inside shell-base (agent-skill@1), so they change
+# fails. The agent skills in shell-base/skills/ ship inside shell-base (agent-skill@1), so they change
 # with a rebuild (-r), like the rest of the kit.
 #
 # shell and claude reuse an existing sandbox of the same name (`sbx run --name`, which restarts it
