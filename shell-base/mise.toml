@@ -18,5 +18,8 @@ self_update.minimum_release_age = "3d"
 [tools]
 node = "26.13.1"  # LTS; exact like the others, see renovate.json for why
 hunk = "v0.25.0"   # terminal diff viewer (aqua:modem-dev/hunk)
+# Interactive shell `sbx-up shell` opens; the upstream standalone binary, since Debian's fish
+# package would replace the base image's Python with Debian's.
+"github:fish-shell/fish-shell" = "4.9.3"
 # uv and Python come with the base image (sbx/shell), updated with it.
 helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
