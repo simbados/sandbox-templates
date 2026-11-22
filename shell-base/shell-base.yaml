@@ -19,6 +19,22 @@ sourceUrl: https://github.com/simbados/sandbox-templates
 capabilities:
   - type: com.docker.sandbox/sbx@1
 
+  # Agent skills bundled in the image (config/skills/, tools/agent-skills.dockerfile), one entry
+  # per skill directory. sbx (0.48.0+) exposes each at <destination>/<name> in every skills
+  # directory a kit in the sandbox declares; claude-mixin declares /home/agent/.claude/skills.
+  # Optional, because a plain shell sandbox declares no skills directory and would otherwise
+  # refuse to start. sbx never overwrites a skill of the same name from the host's sbx skills
+  # store: the bundled one is then skipped without an error, so don't keep copies of these
+  # skills there.
+  - type: com.docker.sandbox/agent-skill@1
+    optional: true
+    config:
+      path: /usr/share/shell-base/skills/hunk-diff
+  - type: com.docker.sandbox/agent-skill@1
+    optional: true
+    config:
+      path: /usr/share/shell-base/skills/scan-dependencies
+
   - type: com.docker.sandbox/network-policy@1
     config:
       runtime:

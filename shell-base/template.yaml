@@ -13,4 +13,5 @@ tools:
   - helix-config
   - git-config
   - hunk-config
+  - agent-skills
   - sbx-launch

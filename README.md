@@ -9,7 +9,7 @@ base image, tool versions and the Claude mixin up to date.
 - `shell-base/`: v3 workload kit. Docker's hardened Debian 13 sandbox
   ([`sbx/shell`](https://hub.docker.com/r/sbx/shell)) with Docker,
   mise (node, hunk, helix), supply-chain presets for npm/pnpm/uv, the shared agent guidance
-  (`config/AGENTS.md`), a default helix config (`config/helix/`) and a base network allow
+  (`config/AGENTS.md`), a default helix config (`config/helix/`), the agent skills (`config/skills/`) and a base network allow
   list. sbx builds it from this directory.
   Project-specific tools such as pnpm or uv go in the project's `.sbx-kits/`.
 - `claude-mixin.ref`: Docker's `claude-mixin` kit ([`sbx/claude-mixin`](https://hub.docker.com/r/sbx/claude-mixin),
@@ -100,10 +100,12 @@ the next sealed start. Only one of each name can run at a time, since a new one 
 starts it fresh. A sealed start without `-k` still replaces it, so give kept ones a `-c` name if you
 also use plain sealed sandboxes of that flavor.
 
-Before each start, `sbx-up` also copies `config/skills/` into the folder sbx mounts read-only at
-`~/.claude/skills` in every sandbox (`~/Library/Application Support/com.docker.sandboxes/sandboxes/agent-skills`
-on the Mac, not the Mac's own `~/.claude/skills`). Only changed skills are copied; `bin/install-skills`
-does the same by hand.
+The agent skills in `config/skills/` ship inside shell-base as bundled skills
+(`com.docker.sandbox/agent-skill@1`, sbx 0.48.0 or later), and sbx exposes them at
+`~/.claude/skills` in Claude sandboxes. Like the rest of the kit, a changed skill reaches a sandbox
+with `sbx-up -r`. sbx skips a bundled skill when its host skills store (`sbx skills ls`) already
+holds one of the same name, so remove the copies the old `bin/install-skills` put there once, with `sbx skills rm hunk-diff`
+and `sbx skills rm scan-dependencies`.
 
 `sbx-up kit` copies the template into a project's `.sbx-kits/` and leaves mixins the project
 already has alone.

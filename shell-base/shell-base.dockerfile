@@ -202,6 +202,14 @@ COPY --chown=agent:agent shared/hunk.toml /home/agent/.config/hunk/config.toml
 RUN mkdir -p ~/.config/hunk/extensions
 COPY --chown=agent:agent shared/agent-notify.ts /home/agent/.config/hunk/extensions/agent-notify.ts
 
+# Ships this repo's agent skills (config/skills/<name>/SKILL.md) in the image. shell-base.yaml
+# declares one com.docker.sandbox/agent-skill@1 entry per skill, and sbx exposes each at
+# <destination>/<name> in every skills directory a kit in the sandbox declares
+# (agent-skills@1; claude-mixin declares /home/agent/.claude/skills). The sources stay outside
+# any discovery directory, since sbx assembles those itself. Kit mode copies this directory
+# whole into shared/skills/.
+COPY shared/skills /usr/share/shell-base/skills
+
 # Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx launches the
 # workload with the image's ENTRYPOINT plus any arguments after `--`. sbx/shell's own entrypoint
 # is `bash -c 'exec "$@"' bash`, which expects a whole command, but sbx-up passes bash options
