@@ -47,7 +47,7 @@
 # and otherwise, or always with -r,
 #   sbx rm -f shop-claude                                  (only if it exists)
 #   sbx run --name shop-claude \
-#     --kit docker/sbx-kit-claude-mixin:2.1.285@sha256:52a5... \
+#     --kit sbx/claude-mixin:2.1.330@sha256:ae80... \
 #     --kit /Users/me/projects/shop/.sbx-kits/project \
 #     /path/to/sandbox-templates/shell-base /Users/me/projects/shop \
 #     -- -lc 'claude --permission-mode auto'

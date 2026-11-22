@@ -11,7 +11,8 @@ base image, tool versions and the Claude mixin up to date.
   (`config/AGENTS.md`), a default helix config (`config/helix/`) and a base network allow
   list. sbx builds it from this directory.
   Project-specific tools such as pnpm or uv go in the project's `.sbx-kits/`.
-- `claude-mixin.ref`: Docker's `claude-mixin` kit, pinned by digest. It adds Claude Code, API
+- `claude-mixin.ref`: Docker's `claude-mixin` kit ([`sbx/claude-mixin`](https://hub.docker.com/r/sbx/claude-mixin),
+  a Docker Hardened Image), pinned by digest. It adds Claude Code, API
   key / subscription sign-in through the sbx proxy (real credentials stay on the host), session
   volumes and Claude's allow list on top of shell-base.
 - `bin/sbx-up`: composes shell-base and claude-mixin with a project's mixins and (re)creates the sandbox.

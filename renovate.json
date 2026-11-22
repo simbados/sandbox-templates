@@ -77,7 +77,8 @@
   ],
   "customManagers": [
     {
-      // Docker's claude-mixin kit, composed onto shell-base by `bin/sbx-up claude`. The file
+      // Docker's claude-mixin kit (sbx/claude-mixin, a Docker Hardened Image; it replaced
+      // docker/sbx-kit-claude-mixin, which Docker deleted), composed onto shell-base by `bin/sbx-up claude`. The file
       // holds one `repo:tag@digest` line. Its tags are Claude Code versions (2.1.285), so the
       // docker versioning picks the newest release and keeps the digest pinned to it.
       "customType": "regex",
