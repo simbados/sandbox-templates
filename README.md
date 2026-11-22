@@ -46,7 +46,13 @@ On the host (macOS), where `sbx` runs; `sbx-up` doesn't work inside a sandbox.
    commands it would run without running them.
 5. For Claude Code, optionally store an API key once: `sbx secret set anthropic`. Without one,
    use `/login` inside Claude Code; the sbx proxy keeps the real tokens on the host either way.
-6. In each project, copy the template mixin and commit it with the project:
+6. Turn off sbx's model server. This is an sbx setting on the host, so it only needs to be set once:
+
+   ```bash
+   sbx settings set model.server.enabled false
+   ```
+
+7. In each project, copy the template mixin and commit it with the project:
 
    ```bash
    sbx-up kit            # copies project-template/.sbx-kits/ into the current directory
