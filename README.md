@@ -50,6 +50,7 @@ On the host (macOS), where `sbx` runs; `sbx-up` doesn't work inside a sandbox.
 
    ```bash
    sbx settings set model.server.enabled false
+   sbx daemon restart   # the setting only applies after a daemon restart
    ```
 
 7. In each project, copy the template mixin and commit it with the project:
