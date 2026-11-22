@@ -51,14 +51,14 @@
       "allowedVersions": "/^v?\\d*[02468]\\./"
     },
     {
-      // The sandbox-templates base images use non-version tags (e.g. "shell-docker"), so Renovate has no matching version to age a digest
-      // update against. Since Renovate 42 (minimumReleaseAgeBehaviour defaults to
-      // "timestamp-required") such digest updates are held as "Pending Status
-      // Checks" on the Dependency Dashboard forever - see "digest updates" in
-      // docs/usage/key-concepts/minimum-release-age.md. Raise them without an age
-      // check instead; minimumReleaseAge still applies to everything else.
+      // Docker Hardened Images overwrite a version tag when they rebuild it (e.g. sbx/shell:1.1.0
+      // with security fixes), so the same tag gets new digests that have no release timestamp.
+      // Since Renovate 42 (minimumReleaseAgeBehaviour defaults to "timestamp-required") such
+      // digest updates are held as "Pending Status Checks" on the Dependency Dashboard forever -
+      // see "digest updates" in docs/usage/key-concepts/minimum-release-age.md. Raise them
+      // without an age check instead; minimumReleaseAge still applies to new versions.
       "matchDatasources": ["docker"],
-      "matchPackageNames": ["docker/sandbox-templates"],
+      "matchPackageNames": ["sbx/shell", "sbx/claude-mixin"],
       "matchUpdateTypes": ["digest"],
       "minimumReleaseAgeBehaviour": "timestamp-optional"
     },

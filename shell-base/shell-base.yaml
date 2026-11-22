@@ -12,8 +12,8 @@ schemaVersion: "3"
 kind: workload
 displayName: Shell base (simbados)
 description: >-
-  Ubuntu shell sandbox on docker/sandbox-templates:shell-docker with Docker, mise (node, hunk,
-  helix), supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
+  Debian shell sandbox on Docker's hardened sbx/shell with Docker, mise (node, hunk, helix),
+  fish, supply-chain presets for npm/pnpm/uv, and the shared agent guidance.
 sourceUrl: https://github.com/simbados/sandbox-templates
 
 capabilities:
@@ -23,12 +23,10 @@ capabilities:
     config:
       runtime:
         allow:
-          # apt: Ubuntu archive (ports.* serves arm64, archive/security.* amd64) and the
-          # Docker apt repo the base image ships
-          - ports.ubuntu.com
-          - archive.ubuntu.com
-          - security.ubuntu.com
-          - download.docker.com
+          # apt: Debian's archive (also serves debian-security, all architectures) and Docker's
+          # hardened package repo, the base image's two apt sources
+          - deb.debian.org
+          - dhi.io
           # git, and release downloads for mise and its tools
           - github.com
           - api.github.com

@@ -2,7 +2,7 @@
 
 ## Environment
 
-- You are running inside a Docker Sandbox (`sbx`): an isolated Ubuntu VM, as user `agent` (home `/home/agent`) with passwordless `sudo` and a Docker daemon of its own.
+- You are running inside a Docker Sandbox (`sbx`): an isolated VM running Debian 13 (Docker Hardened Images), as user `agent` (home `/home/agent`) with passwordless `sudo` and a Docker daemon of its own.
 - The project directory (`$WORKSPACE_DIR`) is shared with the user's host and mounted at the same path. Changes there show up on the host immediately; everything else (home directory, system packages, containers) exists only in this sandbox and is lost when it is recreated.
 - Outbound traffic goes through the sandbox proxy (`HTTPS_PROXY`), which enforces the network allow list (see Network Access).
 - Real credentials never enter the sandbox. API key variables, if set, hold placeholder values that the proxy swaps for the real key on matching requests; don't print them, copy them elsewhere or ask the user for keys.

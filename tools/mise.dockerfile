@@ -16,7 +16,7 @@
 # checked in addition to the live GPG verification,
 # so a build always gets the exact same reviewed bytes rather than "whatever is currently signed".
 #
-# Requires gnupg (from apt-packages.dockerfile).
+# Requires curl and gnupg, which the base image ships.
 COPY --chown=agent:agent keys/mise-release.asc /tmp/mise-release.asc
 
 RUN set -eu; \

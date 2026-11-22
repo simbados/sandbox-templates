@@ -6,7 +6,8 @@ base image, tool versions and the Claude mixin up to date.
 
 ## Pieces
 
-- `shell-base/`: v3 workload kit. Ubuntu `docker/sandbox-templates:shell-docker` with Docker,
+- `shell-base/`: v3 workload kit. Docker's hardened Debian 13 sandbox
+  ([`sbx/shell`](https://hub.docker.com/r/sbx/shell)) with Docker,
   mise (node, hunk, helix), supply-chain presets for npm/pnpm/uv, the shared agent guidance
   (`config/AGENTS.md`), a default helix config (`config/helix/`) and a base network allow
   list. sbx builds it from this directory.

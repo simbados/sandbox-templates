@@ -1,42 +1,31 @@
-ARG APT_BUMP_DATE=2026-11-05
+# apt over HTTPS and without retries. The base image (sbx/shell, Debian 13) lists Debian's archive
+# and Docker's hardened package repo (dhi.io) as http:// sources in /etc/apt/sources.list.d/*.sources.
+# apt checks package signatures either way; HTTPS keeps a man-in-the-middle from serving anything
+# at all, and no retries closes the hole where apt trusted a tampered package on a retried
+# download. Changing APT_BUMP_DATE re-runs this step and the ones after it.
+ARG APT_BUMP_DATE=2026-11-22
 RUN echo 'Acquire::Retries "0";' | sudo tee /etc/apt/apt.conf.d/99-no-retries && \
     dpkg -s ca-certificates >/dev/null && \
-    sudo sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources && \
-    grep -h '^URIs' /etc/apt/sources.list.d/ubuntu.sources && \
-    apt-config dump | grep Acquire::Retries && \
-    apt --version && \
-    sudo apt-get update && \
-    sudo apt-get install -y --no-install-recommends --only-upgrade apt && \
-    apt --version && \
-    sudo rm -rf /var/lib/apt/lists/*
+    sudo sed -i 's|http://|https://|g' /etc/apt/sources.list.d/*.sources && \
+    grep -h '^URIs' /etc/apt/sources.list.d/*.sources && \
+    apt-config dump | grep Acquire::Retries
 
-RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
-    command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
-     sudo rm -rf /var/lib/apt/lists/*)
+# fish is the interactive shell `sbx-up shell` opens; it isn't in the base image, so it comes from
+# Debian's archive. The base image ships vim only as /usr/bin/vim.basic: its packages are
+# installed without running their setup scripts, so the usual vim/vi links are missing.
+RUN sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends fish && \
+    sudo rm -rf /var/lib/apt/lists/* && \
+    sudo ln -sf /usr/bin/vim.basic /usr/local/bin/vim && \
+    sudo ln -sf /usr/bin/vim.basic /usr/local/bin/vi
 
-# Removes the base image's Debian node/npm (npm 9) and the Debian JavaScript packages that need
-# it. node and npm come from mise; the Debian npm was what ran whenever the mise shim could not
-# find mise's node (another HOME, e.g. root), and npm 9 silently ignores min-release-age.
-# --auto-remove also drops what only node needed (libicu, libssl-dev, ...). Claude Code is a
-# native binary and does not use it. Skipped when the base image has no Debian nodejs.
-RUN ! dpkg -s nodejs >/dev/null 2>&1 || \
-    (sudo apt-get purge -y --auto-remove nodejs npm && sudo rm -rf /var/lib/apt/lists/*)
-
-# Removes the base image's uv (/usr/local/bin/uv, 0.9.x when this was written) so the only uv is
-# mise's, pinned in shell-base/mise.toml and locked in mise.lock. Otherwise whichever comes first
-# on PATH wins, and the old one runs wherever mise's shims aren't active. Skipped when absent.
-RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
-      [ ! -e "$f" ] || sudo rm -f "$f"; \
-    done
-
-# Upgrades the base image's packages to the current Ubuntu updates (security fixes the image
-# doesn't have yet). Last, so it doesn't upgrade node/npm only to purge them above. Like every
-# layer it is cached: it only re-runs when an earlier layer changes, e.g. a base image bump.
-# Noninteractive and keeping existing config files, so a changed conffile can't stall the build.
-# Change APT_UPGRADE_DATE to force a fresh upgrade: a changed ARG invalidates the cache from this
-# step on (a comment doesn't, Docker ignores comments when matching layers).
-ARG APT_UPGRADE_DATE=2026-11-05
+# Upgrades the base image's packages to the current Debian and DHI updates (security fixes
+# published since the image was built). Like every layer it is cached: it only re-runs when an
+# earlier layer changes, e.g. a base image bump. Noninteractive and keeping existing config
+# files, so a changed conffile can't stall the build. Change APT_UPGRADE_DATE to force a fresh
+# upgrade: a changed ARG invalidates the cache from this step on (a comment doesn't, Docker
+# ignores comments when matching layers).
+ARG APT_UPGRADE_DATE=2026-11-22
 RUN sudo apt-get update && \
     sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
       -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \

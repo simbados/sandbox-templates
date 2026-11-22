@@ -5,7 +5,7 @@
 # that holds <name>.yaml with --kit, on top of shell-base. After an edit, run sbx-up again: it
 # recreates the sandbox, since a sandbox keeps the kits it was created with.
 #
-# shell-base already allows apt (Ubuntu), GitHub, nodejs.org, npm, PyPI and Docker Hub at
+# shell-base already allows apt (Debian, dhi.io), GitHub, nodejs.org, npm, PyPI and Docker Hub at
 # runtime; list only what this project needs on top. Keep the lists short: the composed kit
 # config is stored in a 4 KiB container label.
 schemaVersion: "3"
@@ -19,8 +19,7 @@ capabilities:
         allow: []
       install:
         # Hosts the install commands below reach. Open only while they run, at sandbox creation.
-        # For apt on arm64 that is ports.ubuntu.com; on amd64 archive.ubuntu.com and
-        # security.ubuntu.com.
+        # For apt that is deb.debian.org and dhi.io.
         allow: []
 
   # Install commands and files, applied when the sandbox is created (before the agent starts).

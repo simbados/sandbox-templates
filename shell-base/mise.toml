@@ -18,5 +18,5 @@ self_update.minimum_release_age = "3d"
 [tools]
 node = "26.13.1"  # LTS; exact like the others, see renovate.json for why
 hunk = "v0.25.0"   # terminal diff viewer (aqua:modem-dev/hunk)
+# uv and Python come with the base image (sbx/shell), updated with it.
 helix = "25.07.1" # editor for reviewing (aqua:helix-editor/helix); no published checksums/attestations, so mise.lock's sha256 is the only pin
-uv = "0.13.8"      # Python package and project manager (aqua:astral-sh/uv); replaces the base image's /usr/local/bin/uv

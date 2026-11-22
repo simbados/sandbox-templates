@@ -3,7 +3,7 @@
 # Edit the fragments in tools/ (and this kit's template.yaml), then regenerate with:
 #   python3 scripts/generate_dockerfile.py shell-base
 
-FROM docker/sandbox-templates:shell-docker@sha256:b178ca62ec2e79af2a044e3ec321bdb72188690e1c15d573ea5524b397554d3d
+FROM sbx/shell:1.1.0@sha256:036c56158d78d741238079a4db9e36f072e6d047eb89debffab700b8cb0c3a96
 
 # The base image ships the agent user; switch to it before ~ is touched below.
 # Idempotent if an earlier fragment already switched to agent.
@@ -11,10 +11,10 @@ USER agent
 
 # npm presets as environment variables, so they apply to every user and every HOME. npm finds the
 # ~/.npmrc below only through $HOME, and its global npmrc location depends on which npm runs (the
-# mise shim picks mise's npm only with the agent's HOME, the base image's npm otherwise).
+# mise shim picks mise's npm only with the agent's HOME).
 # Environment variables beat every .npmrc, so a project's .npmrc cannot loosen them; pass a flag
 # such as --ignore-scripts=false on the command line for a one-off exception.
-# Only npm 11+ knows min-release-age; the base image's /usr/bin/npm (9.x) ignores it silently.
+# Only npm 11+ knows min-release-age; older npm versions ignore it silently.
 ENV NPM_CONFIG_MIN_RELEASE_AGE=7 \
     NPM_CONFIG_IGNORE_SCRIPTS=true \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
@@ -47,45 +47,34 @@ RUN cat <<'EOF' > ~/.config/uv/uv.toml
 exclude-newer = "7 days"
 EOF
 
-ARG APT_BUMP_DATE=2026-11-05
+# apt over HTTPS and without retries. The base image (sbx/shell, Debian 13) lists Debian's archive
+# and Docker's hardened package repo (dhi.io) as http:// sources in /etc/apt/sources.list.d/*.sources.
+# apt checks package signatures either way; HTTPS keeps a man-in-the-middle from serving anything
+# at all, and no retries closes the hole where apt trusted a tampered package on a retried
+# download. Changing APT_BUMP_DATE re-runs this step and the ones after it.
+ARG APT_BUMP_DATE=2026-11-22
 RUN echo 'Acquire::Retries "0";' | sudo tee /etc/apt/apt.conf.d/99-no-retries && \
     dpkg -s ca-certificates >/dev/null && \
-    sudo sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources && \
-    grep -h '^URIs' /etc/apt/sources.list.d/ubuntu.sources && \
-    apt-config dump | grep Acquire::Retries && \
-    apt --version && \
-    sudo apt-get update && \
-    sudo apt-get install -y --no-install-recommends --only-upgrade apt && \
-    apt --version && \
-    sudo rm -rf /var/lib/apt/lists/*
+    sudo sed -i 's|http://|https://|g' /etc/apt/sources.list.d/*.sources && \
+    grep -h '^URIs' /etc/apt/sources.list.d/*.sources && \
+    apt-config dump | grep Acquire::Retries
 
-RUN command -v unzip >/dev/null 2>&1 && command -v fish >/dev/null 2>&1 && \
-    command -v vim >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1 || \
-    (sudo apt-get update && sudo apt-get install -y --no-install-recommends unzip fish vim gnupg && \
-     sudo rm -rf /var/lib/apt/lists/*)
+# fish is the interactive shell `sbx-up shell` opens; it isn't in the base image, so it comes from
+# Debian's archive. The base image ships vim only as /usr/bin/vim.basic: its packages are
+# installed without running their setup scripts, so the usual vim/vi links are missing.
+RUN sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends fish && \
+    sudo rm -rf /var/lib/apt/lists/* && \
+    sudo ln -sf /usr/bin/vim.basic /usr/local/bin/vim && \
+    sudo ln -sf /usr/bin/vim.basic /usr/local/bin/vi
 
-# Removes the base image's Debian node/npm (npm 9) and the Debian JavaScript packages that need
-# it. node and npm come from mise; the Debian npm was what ran whenever the mise shim could not
-# find mise's node (another HOME, e.g. root), and npm 9 silently ignores min-release-age.
-# --auto-remove also drops what only node needed (libicu, libssl-dev, ...). Claude Code is a
-# native binary and does not use it. Skipped when the base image has no Debian nodejs.
-RUN ! dpkg -s nodejs >/dev/null 2>&1 || \
-    (sudo apt-get purge -y --auto-remove nodejs npm && sudo rm -rf /var/lib/apt/lists/*)
-
-# Removes the base image's uv (/usr/local/bin/uv, 0.9.x when this was written) so the only uv is
-# mise's, pinned in shell-base/mise.toml and locked in mise.lock. Otherwise whichever comes first
-# on PATH wins, and the old one runs wherever mise's shims aren't active. Skipped when absent.
-RUN for f in /usr/local/bin/uv /usr/local/bin/uvx; do \
-      [ ! -e "$f" ] || sudo rm -f "$f"; \
-    done
-
-# Upgrades the base image's packages to the current Ubuntu updates (security fixes the image
-# doesn't have yet). Last, so it doesn't upgrade node/npm only to purge them above. Like every
-# layer it is cached: it only re-runs when an earlier layer changes, e.g. a base image bump.
-# Noninteractive and keeping existing config files, so a changed conffile can't stall the build.
-# Change APT_UPGRADE_DATE to force a fresh upgrade: a changed ARG invalidates the cache from this
-# step on (a comment doesn't, Docker ignores comments when matching layers).
-ARG APT_UPGRADE_DATE=2026-11-05
+# Upgrades the base image's packages to the current Debian and DHI updates (security fixes
+# published since the image was built). Like every layer it is cached: it only re-runs when an
+# earlier layer changes, e.g. a base image bump. Noninteractive and keeping existing config
+# files, so a changed conffile can't stall the build. Change APT_UPGRADE_DATE to force a fresh
+# upgrade: a changed ARG invalidates the cache from this step on (a comment doesn't, Docker
+# ignores comments when matching layers).
+ARG APT_UPGRADE_DATE=2026-11-22
 RUN sudo apt-get update && \
     sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
       -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold && \
@@ -109,7 +98,7 @@ RUN sudo apt-get update && \
 # checked in addition to the live GPG verification,
 # so a build always gets the exact same reviewed bytes rather than "whatever is currently signed".
 #
-# Requires gnupg (from apt-packages.dockerfile).
+# Requires curl and gnupg, which the base image ships.
 COPY --chown=agent:agent shared/mise-release.asc /tmp/mise-release.asc
 
 RUN set -eu; \
@@ -212,11 +201,11 @@ COPY --chown=agent:agent shared/hunk.toml /home/agent/.config/hunk/config.toml
 RUN mkdir -p ~/.config/hunk/extensions
 COPY --chown=agent:agent shared/agent-notify.ts /home/agent/.config/hunk/extensions/agent-notify.ts
 
-# Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx then launches
-# the workload itself, under its own PID 1, so the base image's `tini --` entrypoint ends up as
-# a child process and warns on every start that it can't reap zombies ("Tini is not running as
-# PID 1 and isn't registered as a child subreaper"). Reaping is sbx's job here, so drop tini and
-# use the same launch command as Docker's example shell kit (sandbox-kit-spec examples/shell):
-# a login shell. Setting ENTRYPOINT clears the inherited CMD, hence both lines.
+# Kit templates only (their descriptor declares com.docker.sandbox/sbx@1). sbx launches the
+# workload with the image's ENTRYPOINT plus any arguments after `--`. sbx/shell's own entrypoint
+# is `bash -c 'exec "$@"' bash`, which expects a whole command, but sbx-up passes bash options
+# (`-lc 'exec fish -l'`, `-lc 'claude ...'`). So use a plain bash entrypoint, like Docker's
+# example shell kit (sandbox-kit-spec examples/shell): no arguments give a login shell, and
+# sbx-up's arguments run inside one. Setting ENTRYPOINT clears the inherited CMD, hence both lines.
 ENTRYPOINT ["bash"]
 CMD ["-l"]
