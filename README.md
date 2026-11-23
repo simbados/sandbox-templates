@@ -8,7 +8,7 @@ base image, tool versions and the Claude mixin up to date.
 
 - `shell-base/`: v3 workload kit. Docker's hardened Debian 13 sandbox
   ([`sbx/shell`](https://hub.docker.com/r/sbx/shell)) with Docker,
-  mise (node, hunk, helix), supply-chain presets for npm/pnpm/uv, the shared agent guidance
+  mise (node, hunk, helix), supply-chain presets for npm/pnpm/yarn/bun, uv/pip and cargo, the shared agent guidance
   (`config/AGENTS.md`), a default helix config (`config/helix/`), the agent skills (`shell-base/skills/`) and a base network allow
   list. sbx builds it from this directory.
   Project-specific tools such as pnpm or uv go in the project's `.sbx-kits/`.

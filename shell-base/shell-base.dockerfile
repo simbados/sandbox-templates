@@ -47,6 +47,26 @@ RUN cat <<'EOF' > ~/.config/uv/uv.toml
 exclude-newer = "7 days"
 EOF
 
+# The same 7-day minimum release age for the other package managers a project may bring in through
+# its mixin. Environment variables where the tool reads one, since they beat a project's own config:
+# - cargo (Rust 1.100+): versions published less than 7 days ago are ignored unless already in
+#   Cargo.lock. One-off exception: CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update ...
+# - pip (26.1+; the base image ships 26.3): only files uploaded at least 7 days ago. pip 26.0 knows
+#   the option but not the P<n>D form and fails, so recreate venvs that pin it.
+# - yarn (4.12+, Berry; Classic 1.x has no age gate): YARN_ENABLE_SCRIPTS=false is the default,
+#   set anyway so a project's .yarnrc.yml can't turn install scripts on.
+ENV CARGO_REGISTRY_GLOBAL_MIN_PUBLISH_AGE="7 days" \
+    PIP_UPLOADED_PRIOR_TO=P7D \
+    YARN_NPM_MINIMAL_AGE_GATE=7d \
+    YARN_ENABLE_SCRIPTS=false
+
+# bun (1.3+) has no environment variable for this; it reads a global ~/.bunfig.toml, which a
+# project's bunfig.toml can override. 604800 seconds = 7 days.
+RUN cat <<'EOF' > ~/.bunfig.toml
+[install]
+minimumReleaseAge = 604800
+EOF
+
 # apt over HTTPS and without retries. The base image (sbx/shell, Debian 13) lists Debian's archive
 # and Docker's hardened package repo (dhi.io) as http:// sources in /etc/apt/sources.list.d/*.sources.
 # apt checks package signatures either way; HTTPS keeps a man-in-the-middle from serving anything
