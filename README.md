@@ -79,6 +79,7 @@ sbx-up sealed claude  # throwaway sandbox, see below
 sbx-up sealed -c test claude  # another one next to it, named sealed-claude-test
 sbx-up sealed -k claude  # sealed, but kept after the session; run again to reattach
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
+sbx-up unlock [PATH]  # make the locked project files writable again, see below
 ```
 
 Before it changes anything, `sbx-up` shows the sandbox name, whether it creates, reuses or
@@ -90,11 +91,21 @@ mounts   ~/projects/shop
 kits     ~/projects/sandbox-templates/shell-base
          sbx/claude-mixin:2.1.330@sha256:ae80...
          ~/projects/shop/.sbx-kits/project
+locks    .git/hooks .git/config .sbx-kits
 Start? [y/N]
 ```
 
 Any other answer stops it. `-y` skips the question (it's required in scripts, where there is no
 terminal to ask on); `-n` never asks.
+
+The project is mounted writable, so before every start `sbx-up` locks the files the host trusts
+with macOS's immutable flag (`chflags -R uchg`): `.git/hooks` and `.git/config`, which git on the
+Mac would run or obey, and `.sbx-kits/`, which the next sandbox is built from. The flag holds
+through the mount, so nothing in the sandbox can change them; if `chflags` fails, the sandbox
+doesn't start. The Mac can't write them either: to edit a mixin or run something like
+`git push -u`, run `sbx-up unlock` first, and the next start locks them again. While they are
+unlocked, a running sandbox can write them too. The lock doesn't stop the sandbox from renaming
+`.git` itself and creating a new one, so look at `git status` on the Mac if anything seems off.
 
 The sandbox is named `<project>-<flavor>`, e.g. `<project>-shell` or `<project>-claude`. If it already exists, `sbx-up`
 starts it again (`sbx run --name`, which also restarts a stopped one) and attaches to it; it only

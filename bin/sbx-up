@@ -12,8 +12,10 @@
 #                                            project mixins; sbx removes the sandbox when the
 #                                            session ends (sbx run --rm), unless -k keeps it
 #   sbx-up [-n] kit [PATH]                   copy project-template/.sbx-kits/ into a project
+#   sbx-up [-n] unlock [PATH]                make the locked project files writable again (see below)
 #
-#   PATH   project directory, mounted as the workspace (default: current directory); for kit, the
+#   PATH   project directory, mounted as the workspace (default: current directory); for kit and
+#          unlock, the project to act on. For kit, the
 #          project to copy the template into
 #   ARGS   appended to the workload's launch command (`bash -l`); they replace the defaults
 #          `-l` (a login bash) for shell, `-lc 'claude --permission-mode auto'` for claude
@@ -31,18 +33,24 @@
 #          `sbx-up sealed -k` with the same flavor and name reattaches to it like shell|claude
 #          do. A later sealed start without -k still removes it and empties the workspace.
 #
-# Before anything changes (sandbox removal, emptying a sealed workspace, lockconfig, sbx), sbx-up
+# Before anything changes (sandbox removal, emptying a sealed workspace, locking, sbx), sbx-up
 # asks for confirmation, e.g.:
 #   sandbox  shop-claude (create)
 #   mounts   ~/projects/shop
 #   kits     ~/projects/sandbox-templates/shell-base
 #            sbx/claude-mixin:2.1.330@sha256:ae80...
 #            ~/projects/shop/.sbx-kits/project
+#   locks    .git/hooks .git/config .sbx-kits
 #   Start? [y/N]
 # A reused sandbox keeps the kits it was created with, so the prompt says so instead of listing them.
 #
-# Before starting, if the host has a `lockconfig` command on PATH, sbx-up runs it and stops if it
-# fails. The agent skills in shell-base/skills/ ship inside shell-base (agent-skill@1), so they change
+# Before starting shell or claude, sbx-up makes the project files that the host trusts read-only
+# with macOS's user immutable flag (chflags -R uchg): .git/hooks and .git/config, which git on the
+# host would run or obey, and .sbx-kits/, which the next sandbox is built from. The flag holds
+# through the sandbox's mount, so nothing inside the sandbox can change them. git on the host can't
+# write them either (e.g. `git config`, `git push -u`); `sbx-up unlock` clears the flag for that,
+# and the next sbx-up start sets it again. If chflags fails, sbx-up doesn't start the sandbox.
+# The agent skills in shell-base/skills/ ship inside shell-base (agent-skill@1), so they change
 # with a rebuild (-r), like the rest of the kit.
 #
 # shell and claude reuse an existing sandbox of the same name (`sbx run --name`, which restarts it
@@ -102,6 +110,37 @@ sandbox_name() {
   printf '%s-%s\n' "$base" "$2"
 }
 
+# Project files the host trusts, relative to the project: git runs the hooks and obeys the config,
+# and sbx-up builds the next sandbox from .sbx-kits/. Locked before every start (set_lock).
+LOCK_PATHS=(.git/hooks .git/config .sbx-kits)
+
+# Prints the LOCK_PATHS that exist in a project, one per line.
+#   ~/projects/shop (a git repo without .sbx-kits/)  =>  .git/hooks
+#                                                         .git/config
+existing_lock_paths() {
+  local path
+  for path in "${LOCK_PATHS[@]}"; do
+    [ ! -e "$1/$path" ] || printf '%s\n' "$path"
+  done
+}
+
+# Sets (uchg) or clears (nouchg) macOS's user immutable flag on a project's LOCK_PATHS; exits when
+# chflags is missing or fails, so a sandbox never starts on writable files.
+#   set_lock uchg ~/projects/shop   =>  chflags -R uchg .git/hooks .git/config .sbx-kits
+set_lock() {
+  local flag="$1" project="$2" paths=() path
+  [ -d "$project" ] || { echo "sbx-up: not a directory: $project" >&2; exit 1; }
+  project="$(cd -P "$project" && pwd)"
+  while IFS= read -r path; do paths+=("$path"); done < <(existing_lock_paths "$project")
+  [ ${#paths[@]} -gt 0 ] || return 0
+  if ! command -v chflags >/dev/null 2>&1; then
+    echo "sbx-up: chflags not found (macOS only), cannot lock ${paths[*]} in $project" >&2
+    exit 1
+  fi
+  ( cd "$project" && run chflags -R "$flag" "${paths[@]}" ) ||
+    { echo "sbx-up: chflags $flag failed in $project, not continuing" >&2; exit 1; }
+}
+
 # Shortens a path under $HOME for display.
 #   /Users/me/projects/shop  =>  ~/projects/shop
 tilde() {
@@ -112,9 +151,9 @@ tilde() {
 }
 
 # Shows what is about to start and asks on the terminal; exits unless the answer is y or yes.
-# Skipped with -y and for -n. Reads globals NAME, PROJECT, REPO, KITS, REUSE, EXISTS.
+# Skipped with -y and for -n. Reads globals NAME, PROJECT, REPO, KITS, REUSE, EXISTS, SEALED.
 confirm() {
-  local action="create" first=1 item answer
+  local action="create" first=1 item answer locks
   if [ -n "$REUSE" ]; then
     action="reuse"
   elif [ -n "$EXISTS" ]; then
@@ -131,6 +170,10 @@ confirm() {
         if [ -n "$first" ]; then printf 'kits     %s\n' "$(tilde "$item")"; first=""
         else printf '         %s\n' "$(tilde "$item")"; fi
       done
+    fi
+    if [ -z "$SEALED" ]; then
+      locks="$(existing_lock_paths "$PROJECT" | tr '\n' ' ')"
+      [ -z "$locks" ] || printf 'locks    %s\n' "${locks% }"
     fi
     printf 'Start? [y/N] '
   } >&2
@@ -228,6 +271,13 @@ case "${1:-}" in
     copy_template "${1:-$PWD}"
     exit 0
     ;;
+  unlock)
+    shift
+    [ $# -le 1 ] || usage
+    set_lock nouchg "${1:-$PWD}"
+    [ -n "$DRY_RUN" ] || echo "sbx-up: unlocked; the next sbx-up start locks them again" >&2
+    exit 0
+    ;;
   *) usage ;;
 esac
 
@@ -302,11 +352,9 @@ fi
 # tmux/agent.conf) names the window after the project or sealed-<flavor>, not the launch directory.
 run cd "$PROJECT"
 
-# Host-specific lock step, set up outside this repo; skipped where the command doesn't exist. A
-# failure stops sbx-up, so a sandbox never starts on an unlocked config.
-if command -v lockconfig >/dev/null 2>&1; then
-  run lockconfig || { echo "sbx-up: lockconfig failed, not starting the sandbox" >&2; exit 1; }
-fi
+# Makes .git/hooks, .git/config and .sbx-kits/ read-only for the sandbox (see the header). Sealed
+# sandboxes mount an empty directory, so there is nothing to lock.
+[ -n "$SEALED" ] || set_lock uchg "$PROJECT"
 
 # Reuse reads the sandbox's kits and workspace from its spec. Kits are left out on purpose: passing
 # a kit with build content would make sbx create the sandbox fresh. ARGS still go along, so

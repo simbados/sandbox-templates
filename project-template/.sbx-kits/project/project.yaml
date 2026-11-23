@@ -2,8 +2,9 @@
 #
 # Project mixin for sbx-up (github.com/simbados/sandbox-templates). Copy this repo's
 # project-template/.sbx-kits/ into a project; `sbx-up shell|claude` adds every .sbx-kits/<name>/
-# that holds <name>.yaml with --kit, on top of shell-base. After an edit, run sbx-up again: it
-# recreates the sandbox, since a sandbox keeps the kits it was created with.
+# that holds <name>.yaml with --kit, on top of shell-base. sbx-up locks .sbx-kits/ read-only before
+# every start; run `sbx-up unlock` before editing, then `sbx-up -r` to recreate the sandbox with the
+# change, since a sandbox keeps the kits it was created with.
 #
 # shell-base already allows apt (Debian, dhi.io), GitHub, nodejs.org, npm, PyPI and Docker Hub at
 # runtime; list only what this project needs on top.

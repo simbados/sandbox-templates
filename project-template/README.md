@@ -1,6 +1,7 @@
 # Project mixin template
 
-Copy `.sbx-kits/` into a project, edit `.sbx-kits/project/project.yaml`, then run from the project
+Copy `.sbx-kits/` into a project, edit `.sbx-kits/project/project.yaml` (`sbx-up unlock` first if a
+start has locked it), then run from the project
 directory:
 
 ```bash
