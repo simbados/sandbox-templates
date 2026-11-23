@@ -189,6 +189,12 @@ ENV EDITOR=hx VISUAL=hx
 RUN mkdir -p ~/.config/git
 COPY --chown=agent:agent shared/gitconfig /home/agent/.config/git/config
 
+# Debian's git pages through `pager` (as do man and others), a link to less that the package's setup
+# script normally registers. The base image installs packages without running those scripts, so
+# the link is missing and `git diff` fails with "cannot run pager". Same fix as the vim links in
+# apt-packages.dockerfile, but here, so adding it didn't rebuild the toolchain layers.
+RUN sudo ln -sf /usr/bin/less /usr/local/bin/pager
+
 # Ships a default hunk config (theme, view settings) as the user-level config in ~/.config/hunk/,
 # so it applies in every project; a repo's own .hunk/config.toml still overrides it. Kit mode
 # flattens COPY sources into shared/ by file name, so the source is hunk.toml, not config.toml
