@@ -7,10 +7,12 @@ USER agent
 # mise shim picks mise's npm only with the agent's HOME).
 # Environment variables beat every .npmrc, so a project's .npmrc cannot loosen them; pass a flag
 # such as --ignore-scripts=false on the command line for a one-off exception.
-# Only npm 11+ knows min-release-age; older npm versions ignore it silently.
+# Only npm 11+ knows min-release-age; older npm versions ignore it silently. allow-git=root: only
+# the project's own package.json may use git dependencies (npm 11 defaults to all, npm 12 to none).
 ENV NPM_CONFIG_MIN_RELEASE_AGE=7 \
     NPM_CONFIG_IGNORE_SCRIPTS=true \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NPM_CONFIG_ALLOW_GIT=root \
     NPM_CONFIG_ALLOW_DIRECTORY=root \
     NPM_CONFIG_ALLOW_FILE=root \
     NPM_CONFIG_ALLOW_REMOTE=root
@@ -21,6 +23,7 @@ RUN mkdir -p ~/.config/pnpm ~/.config/uv && \
 min-release-age=7
 ignore-scripts=true
 update-notifier=false
+allow-git=root
 allow-directory=root
 allow-file=root
 allow-remote=root
