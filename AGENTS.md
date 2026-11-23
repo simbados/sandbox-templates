@@ -17,5 +17,5 @@ guidance shipped inside the base image (`~/.claude/AGENTS.md` in every sandbox).
 
 ## Base kit
 
-- `shell-base/shell-base.yaml` holds the sandbox's network allow list. Keep it short: the resolved
-  kit is stored in a 4 KiB container label. Project-specific hosts belong in a project mixin.
+- `shell-base/shell-base.yaml` holds the sandbox's network allow list: hosts every project needs.
+  Project-specific hosts belong in a project mixin.

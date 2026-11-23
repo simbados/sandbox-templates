@@ -5,9 +5,8 @@
 # sbx builds this directory with shell-base.dockerfile, which is generated - edit
 # template.yaml / tools/*.dockerfile and run `python3 scripts/generate_dockerfile.py shell-base`.
 #
-# The allow list below is the sandbox's runtime egress on top of the global policy. Keep it
-# short: the resolved kit is stored in a 4 KiB container label (README.md, "Known limits").
-# Project-specific hosts belong in a project mixin (--kit), not here.
+# The allow list below is the sandbox's runtime egress on top of the global policy: hosts every
+# project needs. Project-specific hosts belong in a project mixin (--kit), not here.
 schemaVersion: "3"
 kind: workload
 displayName: Shell base (simbados)
