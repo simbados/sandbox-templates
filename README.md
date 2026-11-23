@@ -72,6 +72,7 @@ From a project directory, on the host:
 sbx-up shell          # shell-base + the project's .sbx-kits/ mixins, opens bash
 sbx-up claude         # ... + claude-mixin, starts Claude Code in auto mode
 sbx-up -r claude      # rebuild: remove the sandbox and create it from the current kits
+sbx-up -y claude      # start without the confirmation prompt
 sbx-up -n claude      # print the sbx commands instead of running them
 sbx-up shell ~/projects/x -- -lc 'make test'   # other directory, own launch arguments
 sbx-up sealed claude  # throwaway sandbox, see below
@@ -79,6 +80,21 @@ sbx-up sealed -c test claude  # another one next to it, named sealed-claude-test
 sbx-up sealed -k claude  # sealed, but kept after the session; run again to reattach
 sbx-up kit [PATH]     # copy project-template/.sbx-kits/ into a project
 ```
+
+Before it changes anything, `sbx-up` shows the sandbox name, whether it creates, reuses or
+recreates it, the directory it mounts and the kits it applies, then waits for `y`:
+
+```
+sandbox  shop-claude (create)
+mounts   ~/projects/shop
+kits     ~/projects/sandbox-templates/shell-base
+         sbx/claude-mixin:2.1.330@sha256:ae80...
+         ~/projects/shop/.sbx-kits/project
+Start? [y/N]
+```
+
+Any other answer stops it. `-y` skips the question (it's required in scripts, where there is no
+terminal to ask on); `-n` never asks.
 
 The sandbox is named `<project>-<flavor>`, e.g. `<project>-shell` or `<project>-claude`. If it already exists, `sbx-up`
 starts it again (`sbx run --name`, which also restarts a stopped one) and attaches to it; it only

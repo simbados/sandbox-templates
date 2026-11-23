@@ -4,9 +4,9 @@
 # Run on the host (where sbx is), from a project directory. Put this repo's bin/ on PATH, or
 # symlink this file into a directory on PATH; it finds the repo through its own location.
 #
-#   sbx-up [-n] [-r] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
-#   sbx-up [-n] [-r] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
-#   sbx-up [-n] [-r] sealed [-k] [-c NAME] shell|claude [-- ARGS...]
+#   sbx-up [-n] [-r] [-y] shell  [PATH] [-- ARGS...]   shell-base + the project's .sbx-kits/ mixins, opens bash
+#   sbx-up [-n] [-r] [-y] claude [PATH] [-- ARGS...]   ... + Docker's claude-mixin, starts Claude Code
+#   sbx-up [-n] [-r] [-y] sealed [-k] [-c NAME] shell|claude [-- ARGS...]
 #                                            throwaway sandbox sealed-<flavor>, or
 #                                            sealed-<flavor>-NAME with -c: an empty workspace, no
 #                                            project mixins; sbx removes the sandbox when the
@@ -19,7 +19,10 @@
 #          `-l` (a login bash) for shell, `-lc 'claude --permission-mode auto'` for claude
 #          (claude-mixin seeds settings.json with defaultMode bypassPermissions; the flag starts the
 #          session in auto mode instead).
-#   -n     print the commands instead of running them
+#   -n     print the commands instead of running them (no prompt)
+#   -y     start without asking: by default sbx-up shows the sandbox, the directory it mounts and
+#          the kits it applies, and waits for a y on the terminal. Required when there is no
+#          terminal to ask on.
 #   -r     rebuild: remove an existing sandbox of the same name and create it from the current kits
 #          (for sealed only matters with -k; without it sealed always starts fresh)
 #   -c     sealed only: name the sandbox, so several sealed sandboxes of one flavor can run at once
@@ -27,6 +30,16 @@
 #   -k     sealed only: keep the sandbox and its workspace when the session ends; the next
 #          `sbx-up sealed -k` with the same flavor and name reattaches to it like shell|claude
 #          do. A later sealed start without -k still removes it and empties the workspace.
+#
+# Before anything changes (sandbox removal, emptying a sealed workspace, lockconfig, sbx), sbx-up
+# asks for confirmation, e.g.:
+#   sandbox  shop-claude (create)
+#   mounts   ~/projects/shop
+#   kits     ~/projects/sandbox-templates/shell-base
+#            sbx/claude-mixin:2.1.330@sha256:ae80...
+#            ~/projects/shop/.sbx-kits/project
+#   Start? [y/N]
+# A reused sandbox keeps the kits it was created with, so the prompt says so instead of listing them.
 #
 # Before starting, if the host has a `lockconfig` command on PATH, sbx-up runs it and stops if it
 # fails. The agent skills in shell-base/skills/ ship inside shell-base (agent-skill@1), so they change
@@ -89,6 +102,51 @@ sandbox_name() {
   printf '%s-%s\n' "$base" "$2"
 }
 
+# Shortens a path under $HOME for display.
+#   /Users/me/projects/shop  =>  ~/projects/shop
+tilde() {
+  case "$1" in
+    "$HOME"/*) printf '~%s\n' "${1#"$HOME"}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+# Shows what is about to start and asks on the terminal; exits unless the answer is y or yes.
+# Skipped with -y and for -n. Reads globals NAME, PROJECT, REPO, KITS, REUSE, EXISTS.
+confirm() {
+  local action="create" first=1 item answer
+  if [ -n "$REUSE" ]; then
+    action="reuse"
+  elif [ -n "$EXISTS" ]; then
+    action="remove and create again"
+  fi
+  {
+    printf 'sandbox  %s (%s)\n' "$NAME" "$action"
+    printf 'mounts   %s\n' "$(tilde "$PROJECT")"
+    if [ -n "$REUSE" ]; then
+      printf 'kits     as created (sbx-up -r to apply the current ones)\n'
+    else
+      for item in "$REPO/shell-base" "${KITS[@]}"; do
+        [ "$item" != "--kit" ] || continue
+        if [ -n "$first" ]; then printf 'kits     %s\n' "$(tilde "$item")"; first=""
+        else printf '         %s\n' "$(tilde "$item")"; fi
+      done
+    fi
+    printf 'Start? [y/N] '
+  } >&2
+  if ! { exec 3</dev/tty; } 2>/dev/null; then
+    echo >&2
+    echo "sbx-up: no terminal to confirm on; pass -y to start without asking" >&2
+    exit 1
+  fi
+  read -r answer <&3 || answer=""
+  exec 3<&-
+  case "$answer" in
+    y|Y|yes|YES|Yes) ;;
+    *) echo "sbx-up: not started" >&2; exit 1 ;;
+  esac
+}
+
 run() {
   if [ -n "$DRY_RUN" ]; then
     printf '%q ' "$@"
@@ -125,10 +183,12 @@ copy_template() {
 
 DRY_RUN=""
 REBUILD=""
+YES=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -n) DRY_RUN=1; shift ;;
     -r) REBUILD=1; shift ;;
+    -y) YES=1; shift ;;
     -h|--help) usage 0 ;;
     *) break ;;
   esac
@@ -228,6 +288,8 @@ REUSE=""
 if [ -n "$EXISTS" ] && [ -z "$REBUILD" ] && { [ -z "$SEALED" ] || [ -n "$SEALED_KEEP" ]; }; then
   REUSE=1
 fi
+
+[ -n "$YES" ] || [ -n "$DRY_RUN" ] || confirm
 
 # A fresh sealed start empties its workspace (a kept one being reused keeps it, and only gets it
 # back if it went missing).
